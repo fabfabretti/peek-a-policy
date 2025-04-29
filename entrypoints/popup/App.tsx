@@ -1,33 +1,34 @@
 import React, { useState } from "react";
 import "./App.css";
+import { useNavigate } from "react-router";
 
 function App() {
-  const [text, setText] = useState("");
+  //State
+  const [policyText, setPolicyText] = useState("");
 
-  const handleTextChange = (e) => {
-    setText(e.target.value);
-  };
-
+  //Functions
   const handleElabora = () => {
-    console.log("Testo elaborato:", text);
+    console.log("Testo elaborato:", policyText);
     // Qui puoi mettere l'azione che vuoi quando premi il bottone
   };
 
   return (
-    <div className="App">
-      <h1>Elabora il Testo</h1>
+    <div className="container">
+      <div className="title-wrapper">
+        <h1 id="title">Peek-a-Policy</h1>
+        <div className="hands">
+          <i className="fa-solid fa-hand hand left-hand"></i>
+          <i className="fa-solid fa-hand hand right-hand"></i>
+        </div>
+      </div>
+
+      <p className="subtitle">Paste the policy you'd like to analyse here.</p>
       <textarea
-        value={text}
-        onChange={handleTextChange}
         placeholder="Incolla il testo qui..."
-        rows="10"
-        cols="50"
-        className="textarea"
-      />
-      <br />
-      <button onClick={handleElabora} className="button">
-        Elabora
-      </button>
+        value={policyText}
+        onChange={(e) => setPolicyText(e.target.value)}
+      ></textarea>
+      <button>Start analysis</button>
     </div>
   );
 }
