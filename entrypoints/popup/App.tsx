@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./App.css";
 import { useNavigate } from "react-router";
-
+import { Button, ButtonGroup } from "@heroui/button";
 function App() {
   //State
   const [policyText, setPolicyText] = useState("");
@@ -29,7 +29,9 @@ function App() {
         value={policyText}
         onChange={(e) => setPolicyText(e.target.value)}
       ></textarea>
-      <button className="dotted-shadow">Start analysis</button>
+      <Button color="primary" variant="solid">
+        Start analysis
+      </Button>
     </div>
   );
 }

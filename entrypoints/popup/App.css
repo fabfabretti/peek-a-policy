@@ -87,26 +87,3 @@ textarea:focus {
   border-color: var(--blu-ceruleo);
   outline: none;
 }
-
-button {
-  background-color: var(--blu-ceruleo);
-  color: white;
-  padding: 15px 30px;
-  font-size: 18px;
-  border: none;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
-}
-
-button:hover {
-  background-color: var(--bottone-hover);
-  transform: scale(1.05);
-}
-
-.dotted-shadow {
-  background-image: radial-gradient(#00000020 1px, transparent 1px),
-    radial-gradient(#00000020 1px, transparent 1px);
-  background-size: 10px 10px;
-  background-position: 0 0, 5px 5px;
-}
