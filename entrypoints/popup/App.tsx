@@ -14,6 +14,7 @@ function App() {
 
   return (
     <div className="container">
+      <div className="bg-blue-500 text-white p-4">Tailwind is working!</div>
       <div className="title-wrapper">
         <h1 id="title">Peek-a-Policy</h1>
         <div className="hands">

@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --blu-ceruleo: #5dadec;
   --sfondo: #f7fafc;
