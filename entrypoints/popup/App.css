@@ -16,7 +16,6 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  border: red 1px solid;
 }
 
 .title-wrapper {
@@ -99,4 +98,11 @@ button {
 button:hover {
   background-color: var(--bottone-hover);
   transform: scale(1.05);
+}
+
+.dotted-shadow {
+  background-image: radial-gradient(#00000020 1px, transparent 1px),
+    radial-gradient(#00000020 1px, transparent 1px);
+  background-size: 10px 10px;
+  background-position: 0 0, 5px 5px;
 }

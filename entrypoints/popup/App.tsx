@@ -28,7 +28,7 @@ function App() {
         value={policyText}
         onChange={(e) => setPolicyText(e.target.value)}
       ></textarea>
-      <button>Start analysis</button>
+      <button className="dotted-shadow">Start analysis</button>
     </div>
   );
 }
