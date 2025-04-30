@@ -13,24 +13,27 @@ function App() {
   };
 
   return (
-    <div className="container">
-      <div className="bg-blue-500 text-white p-4">Tailwind is working!</div>
-      <div className="title-wrapper">
-        <h1 id="title">Peek-a-Policy</h1>
-        <div className="hands">
-          <i className="fa-solid fa-hand hand left-hand"></i>
-          <i className="fa-solid fa-hand hand right-hand"></i>
+    <div className="container flex flex-col items-center p-4">
+      <div className="title-wrapper relative inline-block">
+        <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md">
+          Peek-a-Policy
+        </h1>
+        <div className="hands absolute top-1/3 w-full flex justify-between pointer-events-non">
+          <i className="fa-solid fa-hand hand left-hand text-primary"></i>
+          <i className="fa-solid fa-hand hand right-hand text-primary"></i>
         </div>
       </div>
 
-      <p className="subtitle">Paste the policy you'd like to analyse here.</p>
+      <p className="subtitle text-base text-gray-800 mb-5 text-center">
+        Paste the policy you'd like to analyse here.
+      </p>
       <textarea
         placeholder="Incolla il testo qui..."
         value={policyText}
         onChange={(e) => setPolicyText(e.target.value)}
       ></textarea>
       <Button color="primary" variant="solid">
-        Start analysis
+        Start Analysis
       </Button>
     </div>
   );

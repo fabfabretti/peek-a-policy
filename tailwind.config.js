@@ -6,7 +6,14 @@ export default {
     "./node_modules/@heroui/theme/dist/components/*.js",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary: "#403E80",
+      },
+      fontFamily: {
+        sans: ["Poppins", "sans-serif"],
+      },
+    },
   },
   darkMode: "class",
   plugins: [heroui()],

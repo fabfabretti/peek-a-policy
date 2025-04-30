@@ -2,58 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --blu-ceruleo: #5dadec;
-  --sfondo: #f7fafc;
-  --testo: #333333;
-  --bottone-hover: #4a90e2;
-  --bordo-textarea: #b2e0ff;
-}
 body {
   font-family: "Poppins", sans-serif;
   background-color: var(--sfondo);
   color: var(--testo);
+  min-width: 300px;
 }
 
-.container {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.title-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-#title {
-  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
-  font-size: 1.5em;
-  color: var(--blu-ceruleo);
-  z-index: 1;
-}
-
-.hands {
-  position: absolute;
-  top: 30%;
-  font-size: 1.5em;
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  pointer-events: none;
-}
 .hand {
   opacity: 0.4;
   font-size: 1.2em;
-  color: var(--blu-ceruleo);
   transition: transform 0.4s ease, opacity 0.4s ease;
 }
 .left-hand {
   transform: scaleX(1) rotate(45deg);
 }
 .title-wrapper:hover .left-hand {
-  transform: translateX(-40px) rotate(-45deg) scaleX(-1);
+  transform: translateX(-20px) rotate(-45deg) scaleX(-1);
   opacity: 1;
 }
 
@@ -61,15 +26,8 @@ body {
   transform: scaleX(-1) rotate(45deg);
 }
 .title-wrapper:hover .right-hand {
-  transform: translateX(40px) rotate(45deg) scaleX(1);
+  transform: translateX(20px) rotate(45deg) scaleX(1);
   opacity: 1;
-}
-
-.subtitle {
-  font-size: 1em;
-  color: var(--testo);
-  margin-bottom: 20px;
-  text-align: center;
 }
 
 textarea {
