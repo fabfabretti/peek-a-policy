@@ -4,6 +4,7 @@ export default {
   content: [
     "./entrypoints/popup/**/*.{html,tsx,css}",
     "./node_modules/@heroui/theme/dist/components/*.js",
+    "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
