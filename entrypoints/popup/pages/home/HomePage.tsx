@@ -1,12 +1,15 @@
 import React, { useState } from "react";
-import "./App.css";
+import "./HomePage.css";
 import { useNavigate } from "react-router";
 import { Button, ButtonGroup } from "@heroui/button";
 import { Textarea } from "@heroui/react";
-function App() {
+
+function HomePage() {
   //State
   const [policyText, setPolicyText] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
+
+  const navigation = useNavigate();
 
   //Functions
   const handleElabora = () => {
@@ -40,11 +43,15 @@ function App() {
         isInvalid={isInvalid}
         variant="bordered"
       />
-      <Button color="primary" variant="solid">
+      <Button
+        color="primary"
+        variant="solid"
+        onPress={() => navigation("/results")}
+      >
         Start Analysis
       </Button>
     </div>
   );
 }
 
-export default App;
+export default HomePage;
