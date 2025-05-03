@@ -4,17 +4,26 @@ import { useNavigate } from "react-router";
 import { Button, ButtonGroup } from "@heroui/button";
 import { Textarea } from "@heroui/react";
 
+//example data
+
+const testdata = {
+  summary: "name",
+  q1: "answer",
+};
+
 function HomePage() {
   //State
   const [policyText, setPolicyText] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
 
-  const navigation = useNavigate();
+  const navigate = useNavigate();
 
   //Functions
   const handleElabora = () => {
-    console.log("Testo elaborato:", policyText);
-    // Qui puoi mettere l'azione che vuoi quando premi il bottone
+    const query = new URLSearchParams({
+      data: JSON.stringify(testdata),
+    }).toString();
+    navigate(`/results?${query}`);
   };
 
   return (
@@ -43,11 +52,7 @@ function HomePage() {
         isInvalid={isInvalid}
         variant="bordered"
       />
-      <Button
-        color="primary"
-        variant="solid"
-        onPress={() => navigation("/results")}
-      >
+      <Button color="primary" variant="solid" onPress={handleElabora}>
         Start Analysis
       </Button>
     </div>
