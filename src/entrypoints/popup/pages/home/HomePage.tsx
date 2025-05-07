@@ -1,29 +1,35 @@
 import React, { useState } from "react";
 import "./HomePage.css";
+
+import { testResponse } from "../../types/types";
+
 import { useNavigate } from "react-router";
 import { Button, ButtonGroup } from "@heroui/button";
-import { Textarea } from "@heroui/react";
+import { Card, CardBody, Textarea } from "@heroui/react";
+import ScoreIndicator from "../../components/ScoreIndicator";
 
 //example data
 
-const testdata = {
-  summary: "name",
-  q1: "answer",
-};
-
 function HomePage() {
   //State
-  const [policyText, setPolicyText] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
+
+  const [fullPolicyText, setFullPolicyText] = useState("");
 
   const navigate = useNavigate();
 
   //Functions
   const handleElabora = () => {
-    const query = new URLSearchParams({
-      data: JSON.stringify(testdata),
-    }).toString();
-    navigate(`/results?${query}`);
+    if (fullPolicyText == "") {
+      setIsInvalid(true);
+      return;
+    } else {
+      setIsInvalid(false);
+      const query = new URLSearchParams({
+        data: JSON.stringify({ ...testResponse, full_text: fullPolicyText }),
+      }).toString();
+      navigate(`/results?${query}`);
+    }
   };
 
   return (
@@ -32,6 +38,7 @@ function HomePage() {
         <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md">
           Peek-a-Policy
         </h1>
+
         <div className="hands absolute top-1/3 w-full flex justify-between pointer-events-non">
           <i className="fa-solid fa-hand text-xl hand left-hand text-primary"></i>
           <i className="fa-solid fa-hand text-xl hand right-hand text-primary"></i>
@@ -41,6 +48,7 @@ function HomePage() {
       <p className="subtitle text-base text-gray-800 text-center">
         Paste the policy you'd like to analyse here.
       </p>
+
       <Textarea
         classNames={{
           inputWrapper: "data-[hover=true]:border-primary",
@@ -51,7 +59,14 @@ function HomePage() {
         errorMessage="The policy cannot be empty."
         isInvalid={isInvalid}
         variant="bordered"
+        value={fullPolicyText}
+        onChange={(e) => {
+          if (e.target.value == "") setIsInvalid(true);
+          else setIsInvalid(false);
+          setFullPolicyText(e.target.value);
+        }}
       />
+
       <Button color="primary" variant="solid" onPress={handleElabora}>
         Start Analysis
       </Button>

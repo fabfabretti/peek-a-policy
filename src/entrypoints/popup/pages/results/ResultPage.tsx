@@ -3,11 +3,16 @@ import { Button } from "@heroui/button";
 import { useLocation, useNavigate } from "react-router";
 import { Card, CardBody } from "@heroui/card";
 import { Accordion, AccordionItem } from "@heroui/accordion";
+import ScoreIndicator from "../../components/ScoreIndicator";
+
+import { PolicyResponse } from "../../types/types";
 
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
   const { search } = useLocation();
-  const dati = JSON.parse(new URLSearchParams(search).get("data")!);
+  const policyResponse: PolicyResponse = JSON.parse(
+    new URLSearchParams(search).get("data")!
+  );
 
   const indicators = [
     {
@@ -32,11 +37,10 @@ const ResultPage: React.FC = () => {
 
   return (
     <div className="container mx-auto flex flex-col items-center gap-4 p-4">
-      {/* Indicatore centrale compatto */}
+      {/* Indicator */}
       <Card className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center">
         <CardBody className="relative flex items-center justify-center p-0">
-          <i className="fa-solid fa-circle text-4xl text-green-500"></i>
-          <span className="absolute text-lg font-bold">85/100</span>
+          <ScoreIndicator score={20} color="red" />
         </CardBody>
       </Card>
 
@@ -44,7 +48,8 @@ const ResultPage: React.FC = () => {
       <Card className="w-full max-w-md p-3">
         <h2 className="text-base font-semibold mb-1">Riassunto breve</h2>
         <p className="text-sm">
-          {dati.summary || "Placeholder per il riassunto…"}
+          {policyResponse.full_text + policyResponse.summary ||
+            "Placeholder per il riassunto…"}
         </p>
       </Card>
 

@@ -14,6 +14,20 @@ export default {
       fontFamily: {
         sans: ["Poppins", "sans-serif"],
       },
+      keyframes: {
+        fillUp: {
+          "0%": { height: "0%" },
+          "100%": { height: "100%" },
+        },
+        wave: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-100%)" },
+        },
+      },
+      animation: {
+        fillUp: "fillUp 1s ease-out forwards",
+        wave: "wave 2s infinite linear",
+      },
     },
   },
   darkMode: "class",
