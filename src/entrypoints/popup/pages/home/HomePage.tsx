@@ -8,28 +8,51 @@ import { Button, ButtonGroup } from "@heroui/button";
 import { Card, CardBody, Textarea } from "@heroui/react";
 import ScoreIndicator from "../../components/ScoreIndicator";
 
+import LLMApiManager from "../../components/LLMAPIManager";
+
 //example data
 
 function HomePage() {
   //State
   const [isInvalid, setIsInvalid] = useState(false);
-
   const [fullPolicyText, setFullPolicyText] = useState("");
-
   const navigate = useNavigate();
 
+  //TESTING
+  const [testString, setTestString] = useState("");
+  const [testLoading, setTestLoading] = useState(false);
   //Functions
-  const handleElabora = () => {
+  const analysePolicy = () => {
+    //TODO: RIPRISTINA IL CONTROLLO CHE NON è VUOTA!
+    setIsInvalid(false);
+    const query = new URLSearchParams({
+      data: JSON.stringify({ ...testResponse, full_text: fullPolicyText }),
+    }).toString();
+    navigate(`/results?${query}`);
+  };
+
+  const testFunction = async () => {
     if (fullPolicyText == "") {
-      setIsInvalid(true);
+      setTestString("no policy");
       return;
-    } else {
-      setIsInvalid(false);
-      const query = new URLSearchParams({
-        data: JSON.stringify({ ...testResponse, full_text: fullPolicyText }),
-      }).toString();
-      navigate(`/results?${query}`);
     }
+    const LLM = LLMApiManager.getInstance(
+      import.meta.env.VITE_OPENAI_BASEURL,
+      import.meta.env.VITE_OPENAI_API_KEY
+    );
+
+    setTestLoading(true);
+    let response = await LLM.sendGenPrompt(
+      "Resume this policy in 100-150 words. Final text must be in english. Policy:" +
+        fullPolicyText,
+      "",
+      "gpt-4o-mini"
+    );
+
+    if (response != null) {
+      setTestString(response);
+    }
+    setTestLoading(false);
   };
 
   return (
@@ -44,11 +67,9 @@ function HomePage() {
           <i className="fa-solid fa-hand text-xl hand right-hand text-primary"></i>
         </div>
       </div>
-
       <p className="subtitle text-base text-gray-800 text-center">
         Paste the policy you'd like to analyse here.
       </p>
-
       <Textarea
         classNames={{
           inputWrapper: "data-[hover=true]:border-primary",
@@ -66,10 +87,16 @@ function HomePage() {
           setFullPolicyText(e.target.value);
         }}
       />
-
-      <Button color="primary" variant="solid" onPress={handleElabora}>
+      <Button color="primary" variant="solid" onPress={analysePolicy}>
         Start Analysis
       </Button>
+      ----Testing
+      <br />
+      {testLoading ? "loading" : testString}
+      <Button color="primary" variant="solid" onPress={testFunction}>
+        test
+      </Button>
+      {fullPolicyText}
     </div>
   );
 }
