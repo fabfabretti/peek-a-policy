@@ -5,8 +5,8 @@ export type PolicyRequest = {
 export type PolicyResponse = {
   full_text: string;
   summary: string;
-  score: number;
-  indicators: { title: string; details: string; score: number }[];
+  score?: number;
+  indicators?: { title: string; details: string; score: number }[];
 };
 
 export const testResponse: PolicyResponse = {
