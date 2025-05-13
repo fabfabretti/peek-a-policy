@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { Button } from "@heroui/button";
 import { Textarea } from "@heroui/react";
 import LLMApiManager from "../../components/LLMAPIManager";
+import { Indicator } from "../../types/types";
 
 function HomePage() {
   // State
@@ -47,7 +48,8 @@ function HomePage() {
     setIsLoading(true);
 
     try {
-      const fileUrl = chrome.runtime.getURL("prompts/summarize.txt");
+      // Use browser.runtime.getURL for compatibility with WXT
+      const fileUrl = browser.runtime.getURL("/prompts/summarize.txt");
       const response = await fetch(fileUrl);
       if (!response.ok) {
         throw new Error(
@@ -66,13 +68,48 @@ function HomePage() {
       const llmResponse = await LLM.sendGenPrompt(prompt, "", "gpt-4o-mini");
 
       if (llmResponse) {
-        setResponseText(llmResponse); // Update the response state
+        // Parse the response and add the full_text and descriptions
+        const parsedResponse = JSON.parse(llmResponse);
+
+        // Add descriptions to indicators if they exist
+        if (parsedResponse.indicators) {
+          parsedResponse.indicators = parsedResponse.indicators.map(
+            (indicator: Indicator) => {
+              if (indicator.title === "User score") {
+                return {
+                  ...indicator,
+                  description:
+                    "This score reflects how good the policy is for the end user. A higher score means the policy is more respectful of user privacy.",
+                };
+              } else if (indicator.title === "Law score") {
+                return {
+                  ...indicator,
+                  description:
+                    "This score reflects how complete and clear the policy is from a legal perspective. A higher score means the policy is more compliant with legal requirements.",
+                };
+              }
+              return indicator;
+            }
+          );
+        }
+
+        // Add the full_text field manually to the response
+        const responseWithFullText = {
+          ...parsedResponse,
+          full_text: fullPolicyText,
+        };
+
+        setResponseText(JSON.stringify(responseWithFullText)); // Update the response state
       } else {
         console.error("Failed to get a response from the LLM.");
         setResponseText("Failed to get a response from the LLM.");
       }
     } catch (error) {
-      console.error("Error during policy analysis:", error.message || error);
+      if (error instanceof Error) {
+        console.error("Error during policy analysis:", error.message);
+      } else {
+        console.error("Error during policy analysis:", error);
+      }
       setResponseText("An error occurred during policy analysis.");
     } finally {
       setIsLoading(false);

@@ -39,6 +39,8 @@ const ResultPage: React.FC = () => {
     );
   }
 
+  console.log("Policy Response:", policyResponse); // Debugging log
+
   return (
     <div className="container mx-auto flex flex-col items-center gap-4 p-4">
       {/* Summary */}
@@ -50,30 +52,36 @@ const ResultPage: React.FC = () => {
       </Card>
 
       {/* Indicators */}
-      {policyResponse.indicators?.map((indicator, index) => (
-        <div key={index} className="w-full max-w-md mt-4">
-          <div className="flex items-center gap-1">
-            <h3 className="text-sm font-semibold">{indicator.title}</h3>
-            <span
-              className="text-xs text-gray-500 cursor-pointer"
-              title={indicator.details}
-            >
-              ?
-            </span>
+      {policyResponse.indicators && policyResponse.indicators.length > 0 ? (
+        policyResponse.indicators.map((indicator, index) => (
+          <div key={index} className="w-full max-w-md mt-4">
+            <div className="flex items-center gap-1">
+              <h3 className="text-sm font-semibold">{indicator.title}</h3>
+              <span
+                className="text-xs text-gray-500 cursor-pointer"
+                title={indicator.details}
+              >
+                ?
+              </span>
+            </div>
+            <ScoreIndicator
+              score={indicator.score}
+              color={
+                indicator.score >= 4
+                  ? "green"
+                  : indicator.score >= 2
+                  ? "yellow"
+                  : "red"
+              }
+            />
+            <p className="text-xs text-gray-600 mt-1">{indicator.details}</p>
           </div>
-          <ScoreIndicator
-            score={indicator.score}
-            color={
-              indicator.score >= 4
-                ? "green"
-                : indicator.score >= 2
-                ? "yellow"
-                : "red"
-            }
-          />
-          <p className="text-xs text-gray-600 mt-1">{indicator.details}</p>
-        </div>
-      ))}
+        ))
+      ) : (
+        <p className="text-sm text-gray-600 mt-4">
+          No indicators available to display.
+        </p>
+      )}
 
       {/* Back Button */}
       <Button
