@@ -8,12 +8,16 @@ import LLMApiManager from "../../components/LLMAPIManager";
 import { Indicator } from "../../types/types";
 
 function HomePage() {
-  // State
-  const [isInvalid, setIsInvalid] = useState(false);
+  // -- State
   const [fullPolicyText, setFullPolicyText] = useState("");
+
+  const [isInvalid, setIsInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [responseText, setResponseText] = useState<string | null>(null);
+
   const navigate = useNavigate();
+
+  // -- Effects
 
   // Load default policy text in development mode
   useEffect(() => {
@@ -37,8 +41,9 @@ function HomePage() {
     }
   }, []);
 
-  // Functions
+  // -- Functions
   const analysePolicy = async () => {
+    // This is the main logic.
     if (fullPolicyText.trim() === "") {
       setIsInvalid(true);
       return;
@@ -48,8 +53,7 @@ function HomePage() {
     setIsLoading(true);
 
     try {
-      // Use browser.runtime.getURL for compatibility with WXT
-      const fileUrl = browser.runtime.getURL("/prompts/summarize.txt");
+      const fileUrl = browser.runtime.getURL("/prompts/summarize.txt"); // Thsi is because WXT handles chrome/firefox internally
       const response = await fetch(fileUrl);
       if (!response.ok) {
         throw new Error(
@@ -68,7 +72,7 @@ function HomePage() {
       const llmResponse = await LLM.sendGenPrompt(prompt, "", "gpt-4o-mini");
 
       if (llmResponse) {
-        // Parse the response and add the full_text and descriptions
+        // Parse the response and add the full_text and descriptions. TODO: more indicators, so more descriptions
         const parsedResponse = JSON.parse(llmResponse);
 
         // Add descriptions to indicators if they exist
@@ -100,6 +104,7 @@ function HomePage() {
         };
 
         setResponseText(JSON.stringify(responseWithFullText)); // Update the response state
+        console.log(responseText);
       } else {
         console.error("Failed to get a response from the LLM.");
         setResponseText("Failed to get a response from the LLM.");
