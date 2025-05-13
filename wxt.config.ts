@@ -6,5 +6,11 @@ export default defineConfig({
   srcDir: "src",
   manifest: {
     permissions: ["webNavigation"],
+    webAccessibleResources: [
+      {
+        resources: ["*"], // Include all files and folders in the public directory
+        matches: ["<all_urls>"], // Allow access from all URLs within the extension
+      },
+    ],
   },
 });

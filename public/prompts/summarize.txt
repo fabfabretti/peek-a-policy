@@ -1,0 +1,17 @@
+Summarize the key points of this privacy policy in no more than 100 words. 
+Make it clear, concise, and easy to read. Be as precise as possible to the original material. Point out if any critical information is missing.
+Here is the policy: {{Document}}
+
+The response should be in the following JSON format. Do not, under any circumstance, put the json object in a blockquote. Do not add any comment, only respond with the JSON in this format:
+{
+    "summary": # a string with the summary of the policy
+    "explain_user": # a string commenting on how good the policy is from the viewpoint of a end user, explaining the score_user. 
+    "score_user": # a FLOAT number in 0-5 that describes how good the policy is for the end user. 0 is a policy extremely harmful for the user's privacy, and 5 is a privacy very respectful of the user.
+    "explain_law": # a string commenting on how complete and clear the policy is, explaining the score_law
+    "score_law": # a FLOAT number in 0-5 that describes how complete and clear the policy is. 0 is a policy that is missing information required by GDPR. 5 is a policy with clear, complete information.
+}
+
+If the text you've received is not a policy or anything else is wrong, respond with this instead:
+{
+    "error": # a string that explains what was wrong (e.g. the text is not a policy)
+}

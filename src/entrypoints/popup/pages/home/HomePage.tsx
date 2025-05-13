@@ -1,58 +1,93 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./HomePage.css";
 
-import { testResponse } from "../../types/types";
-
 import { useNavigate } from "react-router";
-import { Button, ButtonGroup } from "@heroui/button";
-import { Card, CardBody, Textarea } from "@heroui/react";
-import ScoreIndicator from "../../components/ScoreIndicator";
-
+import { Button } from "@heroui/button";
+import { Textarea } from "@heroui/react";
 import LLMApiManager from "../../components/LLMAPIManager";
 
-//example data
-
 function HomePage() {
-  //State
+  // State
   const [isInvalid, setIsInvalid] = useState(false);
   const [fullPolicyText, setFullPolicyText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [responseText, setResponseText] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  //TESTING
-  const [testString, setTestString] = useState("");
-  const [testLoading, setTestLoading] = useState(false);
-  //Functions
-  const analysePolicy = () => {
-    //TODO: RIPRISTINA IL CONTROLLO CHE NON è VUOTA!
-    setIsInvalid(false);
-    const query = new URLSearchParams({
-      data: JSON.stringify({ ...testResponse, full_text: fullPolicyText }),
-    }).toString();
-    navigate(`/results?${query}`);
-  };
+  // Load default policy text in development mode
+  useEffect(() => {
+    if (import.meta.env.MODE === "development") {
+      const loadTestPolicy = async () => {
+        try {
+          const response = await fetch("/testdata/testpolicy.txt");
+          if (!response.ok) {
+            throw new Error(
+              `Failed to load test policy. Status: ${response.status}`
+            );
+          }
+          const text = await response.text();
+          setFullPolicyText(text);
+        } catch (error) {
+          console.error("Error loading test policy:", error);
+        }
+      };
 
-  const testFunction = async () => {
-    if (fullPolicyText == "") {
-      setTestString("no policy");
+      loadTestPolicy();
+    }
+  }, []);
+
+  // Functions
+  const analysePolicy = async () => {
+    if (fullPolicyText.trim() === "") {
+      setIsInvalid(true);
       return;
     }
-    const LLM = LLMApiManager.getInstance(
-      import.meta.env.VITE_OPENAI_BASEURL,
-      import.meta.env.VITE_OPENAI_API_KEY
-    );
 
-    setTestLoading(true);
-    let response = await LLM.sendGenPrompt(
-      "Resume this policy in 100-150 words. Final text must be in english. Policy:" +
-        fullPolicyText,
-      "",
-      "gpt-4o-mini"
-    );
+    setIsInvalid(false);
+    setIsLoading(true);
 
-    if (response != null) {
-      setTestString(response);
+    try {
+      const fileUrl = chrome.runtime.getURL("prompts/summarize.txt");
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load the prompt file. Status: ${response.status}`
+        );
+      }
+      const promptTemplate = await response.text();
+
+      const prompt = promptTemplate.replace("{{Document}}", fullPolicyText);
+
+      const LLM = LLMApiManager.getInstance(
+        import.meta.env.VITE_OPENAI_BASEURL,
+        import.meta.env.VITE_OPENAI_API_KEY
+      );
+
+      const llmResponse = await LLM.sendGenPrompt(prompt, "", "gpt-4o-mini");
+
+      if (llmResponse) {
+        setResponseText(llmResponse); // Update the response state
+      } else {
+        console.error("Failed to get a response from the LLM.");
+        setResponseText("Failed to get a response from the LLM.");
+      }
+    } catch (error) {
+      console.error("Error during policy analysis:", error.message || error);
+      setResponseText("An error occurred during policy analysis.");
+    } finally {
+      setIsLoading(false);
     }
-    setTestLoading(false);
+  };
+
+  const forwardToResults = () => {
+    if (responseText) {
+      const query = new URLSearchParams({
+        data: responseText,
+      }).toString();
+      navigate(`/results?${query}`);
+    } else {
+      console.error("No response to forward to the Results page.");
+    }
   };
 
   return (
@@ -61,11 +96,6 @@ function HomePage() {
         <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md">
           Peek-a-Policy
         </h1>
-
-        <div className="hands absolute top-1/3 w-full flex justify-between pointer-events-non">
-          <i className="fa-solid fa-hand text-xl hand left-hand text-primary"></i>
-          <i className="fa-solid fa-hand text-xl hand right-hand text-primary"></i>
-        </div>
       </div>
       <p className="subtitle text-base text-gray-800 text-center">
         Paste the policy you'd like to analyse here.
@@ -74,7 +104,7 @@ function HomePage() {
         classNames={{
           inputWrapper: "data-[hover=true]:border-primary",
         }}
-        placeholder="Incolla qui la tua policy..."
+        placeholder="Paste your policy here..."
         minRows={10}
         maxRows={10}
         errorMessage="The policy cannot be empty."
@@ -82,21 +112,33 @@ function HomePage() {
         variant="bordered"
         value={fullPolicyText}
         onChange={(e) => {
-          if (e.target.value == "") setIsInvalid(true);
+          if (e.target.value === "") setIsInvalid(true);
           else setIsInvalid(false);
           setFullPolicyText(e.target.value);
         }}
       />
-      <Button color="primary" variant="solid" onPress={analysePolicy}>
-        Start Analysis
+      <Button
+        color="primary"
+        variant="solid"
+        onPress={analysePolicy}
+        disabled={isLoading}
+      >
+        {isLoading ? "Loading..." : "Start Analysis"}
       </Button>
-      ----Testing
-      <br />
-      {testLoading ? "loading" : testString}
-      <Button color="primary" variant="solid" onPress={testFunction}>
-        test
+      <Button
+        color="secondary"
+        variant="solid"
+        onPress={forwardToResults}
+        disabled={!responseText}
+      >
+        Forward to Results
       </Button>
-      {fullPolicyText}
+      <div className="response-panel mt-4 p-4 border rounded bg-gray-100 w-full max-w-md">
+        <h2 className="text-lg font-semibold mb-2">Response:</h2>
+        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+          {responseText || "No response yet."}
+        </p>
+      </div>
     </div>
   );
 }
