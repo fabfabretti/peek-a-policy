@@ -87,7 +87,7 @@ const ResultPage: React.FC = () => {
       <Button
         color="primary"
         variant="solid"
-        onPress={() => navigate("/")}
+        onPress={() => navigate("/?noRedirect=true")}
         className="mt-4 px-4 py-2 text-sm"
       >
         Back to Home

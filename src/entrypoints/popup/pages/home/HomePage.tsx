@@ -8,9 +8,35 @@ import { Button } from "@heroui/button";
 import { Textarea } from "@heroui/react";
 
 import LLMApiManager from "../../components/LLMAPIManager";
-import { Indicator } from "../../../../utils/types/types";
+import { Indicator, PolicyResponse } from "../../../../utils/types/types";
 
 import storageAPI from "@/utils/storageAPI";
+import { useSearchParams } from "react-router";
+
+const getDomainName = async () => {
+  let domain: null | string = null;
+  try {
+    const tabs = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (tabs && tabs.length > 0) {
+      const url = tabs[0].url;
+      if (url === "about:blank") {
+        domain = "about_blank";
+      } else if (url) {
+        const parsedURL = new URL(url);
+        domain = parsedURL.hostname;
+      } else {
+        console.log("Could not retrieve page URL.");
+      }
+    }
+    console.log("-- getDomain: ", domain);
+  } catch (error) {
+    console.error("Error getting current tab's URL:", error);
+  }
+  return domain;
+};
 
 function HomePage() {
   // -- State
@@ -18,6 +44,10 @@ function HomePage() {
 
   const [isInvalid, setIsInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const noRedirect = searchParams.get("noRedirect"); // This is because if I'm coming from a finished analysis, it would find it in the storage
+  // and show me directly the result again.
 
   //This is just for debug
   const [responseText, setResponseText] = useState<string | null>(null);
@@ -29,6 +59,24 @@ function HomePage() {
   // Load default policy text in development mode
   //TODO check storage
   useEffect(() => {
+    //If current site is in storage, automatically load that result and
+    // show it in resultpage
+    const checkStorageForAnalysis = async () => {
+      const domain = await getDomainName();
+      if (domain) {
+        const policyResponse = await storageAPI.get(domain);
+        if (policyResponse) {
+          const query = new URLSearchParams({
+            data: JSON.stringify(policyResponse),
+          }).toString();
+          navigate(`/results?${query}`);
+        }
+      }
+    };
+
+    if (!noRedirect) checkStorageForAnalysis();
+
+    // If developing, load a predefined policy for convenience
     if (import.meta.env.MODE === "development") {
       const loadTestPolicy = async () => {
         try {
@@ -65,8 +113,8 @@ function HomePage() {
 
     // 1. Summarize
 
-    //   a. Get prompt //TODO dynamic it with settings
     try {
+      //   a. Get prompt //TODO dynamic it with settings
       const fileUrl = browser.runtime.getURL("/prompts/summarize.txt");
       const response = await fetch(fileUrl);
       if (!response.ok) {
@@ -124,26 +172,8 @@ function HomePage() {
         // 2. SAVE RESULT TO LOCALSTORAGE.
 
         //   a. Get domain..
-        let domain: null | string = null;
-        try {
-          const tabs = await browser.tabs.query({
-            active: true,
-            currentWindow: true,
-          });
-          if (tabs && tabs.length > 0) {
-            const url = tabs[0].url;
-            if (url === "about:blank") {
-              domain = "about_blank";
-            } else if (url) {
-              const parsedURL = new URL(url);
-              domain = parsedURL.hostname;
-            } else {
-              console.log("Could not retrieve page URL.");
-            }
-          }
-        } catch (error) {
-          console.error("Error getting current tab's URL:", error);
-        }
+
+        const domain = await getDomainName();
 
         //    b. If domain, save in localstorage with that domain.
 

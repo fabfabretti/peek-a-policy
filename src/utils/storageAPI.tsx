@@ -4,13 +4,10 @@ import { browser } from "wxt/browser";
 
 import { PolicyResponse } from "./types/types";
 
-type StorageKey = "policyData" | "anotherValue";
-
 const storageAPI = {
   async save(key: string, value: PolicyResponse) {
     try {
-      console.log("aaaa");
-      await storage.setItem<string>(`local:${key}`, JSON.stringify(value));
+      await storage.setItem<PolicyResponse>(`local:${key}`, value);
       console.log(`Saved ${key}`);
     } catch (e) {
       console.error(`Failed to save ${key}: ${e}`);
