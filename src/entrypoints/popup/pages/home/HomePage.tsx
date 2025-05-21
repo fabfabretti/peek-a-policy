@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { browser } from "wxt/browser";
+
 import "./HomePage.css";
 
-import { useNavigate } from "react-router";
 import { Button } from "@heroui/button";
 import { Textarea } from "@heroui/react";
+
 import LLMApiManager from "../../components/LLMAPIManager";
-import { Indicator } from "../../types/types";
+import { Indicator } from "../../../../utils/types/types";
+
+import storageAPI from "@/utils/storageAPI";
 
 function HomePage() {
   // -- State
@@ -13,6 +18,8 @@ function HomePage() {
 
   const [isInvalid, setIsInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  //This is just for debug
   const [responseText, setResponseText] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -20,6 +27,7 @@ function HomePage() {
   // -- Effects
 
   // Load default policy text in development mode
+  //TODO check storage
   useEffect(() => {
     if (import.meta.env.MODE === "development") {
       const loadTestPolicy = async () => {
@@ -44,16 +52,22 @@ function HomePage() {
   // -- Functions
   const analysePolicy = async () => {
     // This is the main logic.
+
     if (fullPolicyText.trim() === "") {
       setIsInvalid(true);
       return;
     }
 
+    console.log("--- Analysis started");
+
     setIsInvalid(false);
     setIsLoading(true);
 
+    // 1. Summarize
+
+    //   a. Get prompt //TODO dynamic it with settings
     try {
-      const fileUrl = browser.runtime.getURL("/prompts/summarize.txt"); // Thsi is because WXT handles chrome/firefox internally
+      const fileUrl = browser.runtime.getURL("/prompts/summarize.txt");
       const response = await fetch(fileUrl);
       if (!response.ok) {
         throw new Error(
@@ -61,23 +75,24 @@ function HomePage() {
         );
       }
       const promptTemplate = await response.text();
-
       const prompt = promptTemplate.replace("{{Document}}", fullPolicyText);
 
+      //   b. Initialize LLM and send prompt.
+      // WARNING: ENV USE IS NOT RECOMMENDED BUT WE DONT HAVE A SERVER....
       const LLM = LLMApiManager.getInstance(
         import.meta.env.VITE_OPENAI_BASEURL,
         import.meta.env.VITE_OPENAI_API_KEY
       );
-
       const llmResponse = await LLM.sendGenPrompt(prompt, "", "gpt-4o-mini");
 
+      //    c. Handle response
       if (llmResponse) {
         // Parse the response and add the full_text and descriptions. TODO: more indicators, so more descriptions
-        const parsedResponse = JSON.parse(llmResponse);
+        const policyAnalysis = JSON.parse(llmResponse);
 
         // Add descriptions to indicators if they exist
-        if (parsedResponse.indicators) {
-          parsedResponse.indicators = parsedResponse.indicators.map(
+        if (policyAnalysis.indicators) {
+          policyAnalysis.indicators = policyAnalysis.indicators.map(
             (indicator: Indicator) => {
               if (indicator.title === "User score") {
                 return {
@@ -99,12 +114,43 @@ function HomePage() {
 
         // Add the full_text field manually to the response
         const responseWithFullText = {
-          ...parsedResponse,
+          ...policyAnalysis,
           full_text: fullPolicyText,
         };
 
         setResponseText(JSON.stringify(responseWithFullText)); // Update the response state
         console.log(responseText);
+
+        // 2. SAVE RESULT TO LOCALSTORAGE.
+
+        //   a. Get domain..
+        let domain: null | string = null;
+        try {
+          const tabs = await browser.tabs.query({
+            active: true,
+            currentWindow: true,
+          });
+          if (tabs && tabs.length > 0) {
+            const url = tabs[0].url;
+            if (url === "about:blank") {
+              domain = "about_blank";
+            } else if (url) {
+              const parsedURL = new URL(url);
+              domain = parsedURL.hostname;
+            } else {
+              console.log("Could not retrieve page URL.");
+            }
+          }
+        } catch (error) {
+          console.error("Error getting current tab's URL:", error);
+        }
+
+        //    b. If domain, save in localstorage with that domain.
+
+        if (domain) {
+          storageAPI.save(domain, policyAnalysis);
+          console.log("Saved this analysis in: " + domain);
+        }
       } else {
         console.error("Failed to get a response from the LLM.");
         setResponseText("Failed to get a response from the LLM.");

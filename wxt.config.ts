@@ -5,7 +5,7 @@ export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   srcDir: "src",
   manifest: {
-    permissions: ["webNavigation"],
+    permissions: ["webNavigation", "storage", "tabs"],
     webAccessibleResources: [
       {
         resources: ["*"], // Include all files and folders in the public directory

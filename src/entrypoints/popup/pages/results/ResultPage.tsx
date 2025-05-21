@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router";
 import { Card } from "@heroui/card";
 import ScoreIndicator from "../../components/ScoreIndicator";
 
-import { PolicyResponse } from "../../types/types";
+import { PolicyResponse } from "../../../../utils/types/types";
 
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
