@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Button } from "@heroui/button";
 import { Switch, Input } from "@heroui/react";
 import storageAPI from "@/utils/storageAPI";
-import { LLMConfig, Settings } from "@/utils/types";
+import { LLMConfig, Settings } from "@/utils/types/types";
 
 const DEFAULT_SETTINGS: Settings = {
   useCache: true,
@@ -23,8 +23,8 @@ const SettingsPage: React.FC = () => {
     endpoint: "",
     apiKey: "",
   });
+  const [cacheSize, setCacheSize] = useState<number>(0);
 
-  // Carica impostazioni, aggiunge dev LLM se in modalità sviluppo
   useEffect(() => {
     (async () => {
       const stored = await storageAPI.get<Settings>("settings");
@@ -39,7 +39,7 @@ const SettingsPage: React.FC = () => {
 
       if (
         import.meta.env.MODE === "development" &&
-        !updated.llms.some((llm) => llm.id === "dev")
+        !updated.llms.some((llm: LLMConfig) => llm.id === "dev")
       ) {
         updated = {
           ...updated,
@@ -50,6 +50,9 @@ const SettingsPage: React.FC = () => {
       }
 
       setSettings(updated);
+
+      const bytes = await storageAPI.getPolicyCacheBytes();
+      setCacheSize(bytes);
     })();
   }, []);
 
@@ -58,14 +61,15 @@ const SettingsPage: React.FC = () => {
     storageAPI.save<Settings>("settings", newSettings);
   };
 
-  // Handlers
   const handleToggleCache = (val: boolean) => {
     updateAndSave({ ...settings, useCache: val });
   };
 
   const handleClearCache = async () => {
-    await storageAPI.clearAll();
-    alert("Cache cleared.");
+    await storageAPI.clearPolicyCache();
+    const size = await storageAPI.getPolicyCacheBytes();
+    setCacheSize(size);
+    alert("Policy cache cleared.");
   };
 
   const selectLLM = (id: string) => {
@@ -73,7 +77,7 @@ const SettingsPage: React.FC = () => {
   };
 
   const removeLLM = (id: string) => {
-    const updated = settings.llms.filter((llm) => llm.id !== id);
+    const updated = settings.llms.filter((llm: LLMConfig) => llm.id !== id);
     const newActive =
       settings.activeLLM === id && updated.length > 0
         ? updated[0].id
@@ -122,6 +126,9 @@ const SettingsPage: React.FC = () => {
               onValueChange={handleToggleCache}
             />
           </div>
+          <p className="text-xs text-gray-500 text-right">
+            Cache size: {(cacheSize / 1024).toFixed(1)} KB
+          </p>
           <div className="flex justify-center">
             <Button
               variant="ghost"
@@ -134,7 +141,7 @@ const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* LLM */}
+        {/* LLMs */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-primary">
             LLM Configuration
