@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "@heroui/button";
 import { useLocation, useNavigate } from "react-router";
 import { Card } from "@heroui/card";
-import ScoreIndicator from "../../components/ScoreIndicator";
+import ScoreBadge from "../../components/ScoreBadge";
 
 import { PolicyResponse } from "../../../../utils/types/types";
 
@@ -64,16 +64,7 @@ const ResultPage: React.FC = () => {
                 ?
               </span>
             </div>
-            <ScoreIndicator
-              score={indicator.score}
-              color={
-                indicator.score >= 4
-                  ? "green"
-                  : indicator.score >= 2
-                  ? "yellow"
-                  : "red"
-              }
-            />
+            <ScoreBadge score={indicator.score} />
             <p className="text-xs text-gray-600 mt-1">{indicator.details}</p>
           </div>
         ))

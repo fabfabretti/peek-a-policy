@@ -1,261 +1,197 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
+import { useSearchParams } from "react-router";
 import { browser } from "wxt/browser";
-
-import "./HomePage.css";
-
 import { Button } from "@heroui/button";
 import { Textarea } from "@heroui/react";
 
-import LLMApiManager from "../../components/LLMAPIManager";
-import { Indicator, PolicyResponse } from "../../../../utils/types/types";
-
 import storageAPI from "@/utils/storageAPI";
-import { useSearchParams } from "react-router";
+import LLMApiManager from "../../components/LLMAPIManager";
+import { Indicator, PolicyResponse } from "@/utils/types/types";
+import ScoreBadge from "../../components/ScoreBadge";
+import "./HomePage.css";
 
-const getDomainName = async () => {
-  let domain: null | string = null;
+const getDomainName = async (): Promise<string | null> => {
   try {
     const tabs = await browser.tabs.query({
       active: true,
       currentWindow: true,
     });
-    if (tabs && tabs.length > 0) {
-      const url = tabs[0].url;
-      if (url === "about:blank") {
-        domain = "about_blank";
-      } else if (url) {
-        const parsedURL = new URL(url);
-        domain = parsedURL.hostname;
-      } else {
-        console.log("Could not retrieve page URL.");
-      }
-    }
-    console.log("-- getDomain: ", domain);
-  } catch (error) {
-    console.error("Error getting current tab's URL:", error);
+    const url = tabs?.[0]?.url;
+    if (!url) return null;
+    return url === "about:blank" ? "about_blank" : new URL(url).hostname;
+  } catch (e) {
+    console.error("getDomainName error:", e);
+    return null;
   }
-  return domain;
 };
 
 function HomePage() {
-  // -- State
   const [fullPolicyText, setFullPolicyText] = useState("");
-
   const [isInvalid, setIsInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  const [searchParams] = useSearchParams();
-  const noRedirect = searchParams.get("noRedirect"); // This is because if I'm coming from a finished analysis, it would find it in the storage
-  // and show me directly the result again.
-
-  //This is just for debug
   const [responseText, setResponseText] = useState<string | null>(null);
-
+  const [searchParams] = useSearchParams();
+  const noRedirect = searchParams.get("noRedirect");
   const navigate = useNavigate();
 
-  // -- Effects
-
-  // Load default policy text in development mode
-  //TODO check storage
   useEffect(() => {
-    //If current site is in storage, automatically load that result and
-    // show it in resultpage
-    const checkStorageForAnalysis = async () => {
+    const checkAndRedirect = async () => {
       const domain = await getDomainName();
-      if (domain) {
-        const policyResponse = await storageAPI.get(domain);
-        if (policyResponse) {
-          const query = new URLSearchParams({
-            data: JSON.stringify(policyResponse),
-          }).toString();
-          navigate(`/results?${query}`);
-        }
+      if (!domain) return;
+      const cached = await storageAPI.get(domain);
+      if (cached && !noRedirect) {
+        const query = new URLSearchParams({
+          data: JSON.stringify(cached),
+        }).toString();
+        navigate(`/results?${query}`);
       }
     };
 
-    if (!noRedirect) checkStorageForAnalysis();
+    checkAndRedirect();
 
-    // If developing, load a predefined policy for convenience
     if (import.meta.env.MODE === "development") {
-      const loadTestPolicy = async () => {
-        try {
-          const response = await fetch("/testdata/testpolicy.txt");
-          if (!response.ok) {
-            throw new Error(
-              `Failed to load test policy. Status: ${response.status}`
-            );
-          }
-          const text = await response.text();
-          setFullPolicyText(text);
-        } catch (error) {
-          console.error("Error loading test policy:", error);
-        }
-      };
-
-      loadTestPolicy();
+      fetch("/testdata/testpolicy.txt")
+        .then((r) => r.text())
+        .then(setFullPolicyText)
+        .catch((e) => console.error("loadTestPolicy error:", e));
     }
   }, []);
 
-  // -- Functions
   const analysePolicy = async () => {
-    // This is the main logic.
-
     if (fullPolicyText.trim() === "") {
       setIsInvalid(true);
       return;
     }
 
-    console.log("--- Analysis started");
-
     setIsInvalid(false);
     setIsLoading(true);
 
-    // 1. Summarize
-
     try {
-      //   a. Get prompt //TODO dynamic it with settings
       const fileUrl = browser.runtime.getURL("/prompts/summarize.txt");
-      const response = await fetch(fileUrl);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load the prompt file. Status: ${response.status}`
-        );
-      }
-      const promptTemplate = await response.text();
+      const promptTemplate = await fetch(fileUrl).then((r) => r.text());
       const prompt = promptTemplate.replace("{{Document}}", fullPolicyText);
 
-      //   b. Initialize LLM and send prompt.
-      // WARNING: ENV USE IS NOT RECOMMENDED BUT WE DONT HAVE A SERVER....
       const LLM = LLMApiManager.getInstance(
         import.meta.env.VITE_OPENAI_BASEURL,
         import.meta.env.VITE_OPENAI_API_KEY
       );
+
       const llmResponse = await LLM.sendGenPrompt(prompt, "", "gpt-4o-mini");
 
-      //    c. Handle response
-      if (llmResponse) {
-        // Parse the response and add the full_text and descriptions. TODO: more indicators, so more descriptions
-        const policyAnalysis = JSON.parse(llmResponse);
-
-        // Add descriptions to indicators if they exist
-        if (policyAnalysis.indicators) {
-          policyAnalysis.indicators = policyAnalysis.indicators.map(
-            (indicator: Indicator) => {
-              if (indicator.title === "User score") {
-                return {
-                  ...indicator,
-                  description:
-                    "This score reflects how good the policy is for the end user. A higher score means the policy is more respectful of user privacy.",
-                };
-              } else if (indicator.title === "Law score") {
-                return {
-                  ...indicator,
-                  description:
-                    "This score reflects how complete and clear the policy is from a legal perspective. A higher score means the policy is more compliant with legal requirements.",
-                };
-              }
-              return indicator;
-            }
-          );
-        }
-
-        // Add the full_text field manually to the response
-        const responseWithFullText = {
-          ...policyAnalysis,
-          full_text: fullPolicyText,
-        };
-
-        setResponseText(JSON.stringify(responseWithFullText)); // Update the response state
-        console.log(responseText);
-
-        // 2. SAVE RESULT TO LOCALSTORAGE.
-
-        //   a. Get domain..
-
-        const domain = await getDomainName();
-
-        //    b. If domain, save in localstorage with that domain.
-
-        if (domain) {
-          storageAPI.save(domain, policyAnalysis);
-          console.log("Saved this analysis in: " + domain);
-        }
-      } else {
-        console.error("Failed to get a response from the LLM.");
-        setResponseText("Failed to get a response from the LLM.");
+      if (!llmResponse) {
+        setResponseText("LLM returned null");
+        return;
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error during policy analysis:", error.message);
-      } else {
-        console.error("Error during policy analysis:", error);
+
+      const parsed: PolicyResponse = JSON.parse(llmResponse);
+
+      if (parsed.indicators) {
+        parsed.indicators = parsed.indicators.map((i: Indicator) => ({
+          ...i,
+          description:
+            i.title === "User score"
+              ? "This score reflects how good the policy is for the end user."
+              : i.title === "Law score"
+              ? "This score reflects legal compliance of the policy."
+              : i.description,
+        }));
       }
-      setResponseText("An error occurred during policy analysis.");
+
+      const finalResponse = { ...parsed, full_text: fullPolicyText };
+      setResponseText(JSON.stringify(finalResponse));
+
+      const domain = await getDomainName();
+      if (domain) await storageAPI.save(domain, finalResponse);
+    } catch (e) {
+      console.error("analysePolicy error:", e);
+      setResponseText("Error during analysis.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const forwardToResults = () => {
-    if (responseText) {
-      const query = new URLSearchParams({
-        data: responseText,
-      }).toString();
-      navigate(`/results?${query}`);
-    } else {
-      console.error("No response to forward to the Results page.");
-    }
+    if (!responseText) return;
+    const query = new URLSearchParams({ data: responseText }).toString();
+    navigate(`/results?${query}`);
   };
 
   return (
-    <div className="container flex flex-col items-center gap-4 p-4">
-      <div className="title-wrapper relative inline-block">
-        <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md">
-          Peek-a-Policy
-        </h1>
-      </div>
-      <p className="subtitle text-base text-gray-800 text-center">
-        Paste the policy you'd like to analyse here.
-      </p>
-      <Textarea
-        classNames={{
-          inputWrapper: "data-[hover=true]:border-primary",
-        }}
-        placeholder="Paste your policy here..."
-        minRows={10}
-        maxRows={10}
-        errorMessage="The policy cannot be empty."
-        isInvalid={isInvalid}
-        variant="bordered"
-        value={fullPolicyText}
-        onChange={(e) => {
-          if (e.target.value === "") setIsInvalid(true);
-          else setIsInvalid(false);
-          setFullPolicyText(e.target.value);
-        }}
-      />
-      <Button
-        color="primary"
-        variant="solid"
-        onPress={analysePolicy}
-        disabled={isLoading}
-      >
-        {isLoading ? "Loading..." : "Start Analysis"}
-      </Button>
-      <Button
-        color="secondary"
-        variant="solid"
-        onPress={forwardToResults}
-        disabled={!responseText}
-      >
-        Forward to Results
-      </Button>
-      <div className="response-panel mt-4 p-4 border rounded bg-gray-100 w-full max-w-md">
-        <h2 className="text-lg font-semibold mb-2">Response:</h2>
-        <p className="text-sm text-gray-800 whitespace-pre-wrap">
-          {responseText || "No response yet."}
-        </p>
+    <div className="flex justify-center items-start min-h-screen py-10 bg-background">
+      <div className="bg-white shadow-lg rounded-xl p-6 w-full max-w-xl space-y-6 relative">
+        {/* Icona impostazioni */}
+        <div className="absolute top-4 right-4">
+          <Button
+            isIconOnly
+            variant="ghost"
+            color="primary"
+            size="sm"
+            onPress={() => navigate("/settings")}
+            className="!p-1.5 transition-colors border border-primary hover:bg-primary hover:text-white"
+          >
+            <i className="fa-solid fa-gear text-sm"></i>
+          </Button>
+        </div>
+
+        {/* Titolo */}
+        <div className="text-center">
+          <h1 className="text-3xl font-black text-primary drop-shadow title">
+            Peek-a-Policy
+          </h1>
+          <p className="mt-1 text-gray-600 text-sm">
+            Paste the policy you'd like to analyse here.
+          </p>
+        </div>
+
+        {/* Textarea */}
+        <Textarea
+          classNames={{ inputWrapper: "data-[hover=true]:border-primary" }}
+          placeholder="Paste your policy here..."
+          minRows={10}
+          maxRows={10}
+          errorMessage="The policy cannot be empty."
+          isInvalid={isInvalid}
+          variant="bordered"
+          value={fullPolicyText}
+          onChange={(e) => {
+            setIsInvalid(e.target.value === "");
+            setFullPolicyText(e.target.value);
+          }}
+        />
+
+        {/* Bottoni */}
+        <div className="flex flex-col gap-3">
+          <Button
+            color="primary"
+            variant="ghost"
+            onPress={analysePolicy}
+            disabled={isLoading}
+            className="transition-all border border-primary hover:bg-primary hover:text-white"
+          >
+            {isLoading ? "Analyzing..." : "Start Analysis"}
+          </Button>
+
+          <Button
+            color="secondary"
+            variant="ghost"
+            onPress={forwardToResults}
+            disabled={!responseText}
+            className="transition-all border border-secondary hover:bg-secondary hover:text-white"
+          >
+            Forward to Results
+          </Button>
+        </div>
+
+        {/* Response box */}
+        <div className="bg-gray-100 p-4 rounded-md">
+          <h2 className="text-md font-semibold text-gray-700 mb-1">
+            Response:
+          </h2>
+          <p className="text-sm text-gray-800 whitespace-pre-wrap">
+            {responseText || "No response yet."}
+          </p>
+        </div>
       </div>
     </div>
   );

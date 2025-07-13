@@ -5,30 +5,23 @@ import { browser } from "wxt/browser";
 import { PolicyResponse } from "./types/types";
 
 const storageAPI = {
-  async save(key: string, value: PolicyResponse) {
+  async save<T>(key: string, value: T) {
     try {
-      await storage.setItem<PolicyResponse>(`local:${key}`, value);
+      await storage.setItem<T>(`local:${key}`, value);
       console.log(`Saved ${key}`);
     } catch (e) {
       console.error(`Failed to save ${key}: ${e}`);
     }
   },
-  async get(key: string): Promise<PolicyResponse | undefined> {
+
+  async get<T>(key: string): Promise<T | undefined> {
     try {
-      const value = await storage.getItem<PolicyResponse>(`local:${key}`);
+      const value = await storage.getItem<T>(`local:${key}`);
       console.log(`Retrieved ${key}`);
       return value ?? undefined;
     } catch (e) {
       console.error(`Failed to get ${key}: ${e}`);
       return undefined;
-    }
-  },
-  async delete(key: string) {
-    try {
-      await storage.removeItem(`local:${key}`);
-      console.log(`Deleted ${key}`);
-    } catch (e) {
-      console.error(`Failed to delete ${key}: ${e}`);
     }
   },
 };
