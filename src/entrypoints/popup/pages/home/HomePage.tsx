@@ -13,14 +13,15 @@ function HomePage() {
   const [fullPolicyText, setFullPolicyText] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [domainHasCache, setDomainHasCache] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const noRedirect = searchParams.get("noRedirect");
 
   useEffect(() => {
-    const maybeRedirect = async () => {
+    const checkCache = async () => {
       const settings = await storageAPI.get<Settings>("settings");
-      if (!settings?.useCache || noRedirect) return;
+      if (!settings?.useCache) return;
 
       const tabs = await browser.tabs.query({
         active: true,
@@ -33,12 +34,12 @@ function HomePage() {
       const cached = await storageAPI.get<PolicyResponse>(domain);
 
       if (cached && cached.summary) {
+        setDomainHasCache(true);
         await storageAPI.save("last_analysis", cached);
-        navigate("/results");
       }
     };
 
-    maybeRedirect();
+    checkCache();
 
     if (import.meta.env.MODE === "development") {
       fetch("/testdata/testpolicy.txt")
@@ -88,15 +89,32 @@ function HomePage() {
   };
 
   return (
-    <div className="container flex flex-col items-center gap-4 p-4">
+    <div className="w-[480px] p-4 flex flex-col items-center gap-4">
       <div className="title-wrapper relative inline-block">
         <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md">
           Peek-a-Policy
         </h1>
       </div>
+
       <p className="subtitle text-base text-gray-800 text-center">
         Paste the policy you'd like to analyse here.
       </p>
+
+      {/* ✅ Banner per dominio già analizzato */}
+      {domainHasCache && (
+        <div className="w-full max-w-md border border-primary bg-primary/10 rounded-md p-3 text-sm text-primary text-center">
+          This domain has already been analyzed.
+          <Button
+            color="primary"
+            variant="ghost"
+            className="mt-2 w-full"
+            onPress={() => navigate("/results")}
+          >
+            View Results
+          </Button>
+        </div>
+      )}
+
       <Textarea
         placeholder="Paste your policy here..."
         minRows={10}

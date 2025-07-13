@@ -7,6 +7,9 @@ import SettingsPage from "./pages/settings/SettingsPage.tsx";
 import "./style.css";
 import { HeroUIProvider } from "@heroui/system";
 import { HashRouter, Route, Routes } from "react-router";
+import { initDefaultSettingsIfNeeded } from "@/utils/initDefaultSettings";
+
+await initDefaultSettingsIfNeeded();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

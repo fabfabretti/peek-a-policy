@@ -22,6 +22,14 @@ const storageAPI = {
       return undefined;
     }
   },
+  async delete(key: string): Promise<void> {
+    try {
+      await storage.removeItem(`local:${key}`);
+      console.log(`Deleted ${key}`);
+    } catch (e) {
+      console.error(`Failed to delete ${key}: ${e}`);
+    }
+  },
 
   async getPolicyCacheBytes(): Promise<number> {
     try {

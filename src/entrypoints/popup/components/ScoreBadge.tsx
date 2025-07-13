@@ -14,7 +14,7 @@ const getColor = (score: number): string => {
 const ScoreBadge = ({ score, maxScore }: ScoreBadgeProps) => {
   const [fillHeight, setFillHeight] = useState(0);
   const percent = Math.min(100, (score / maxScore) * 100);
-  const fillColor = getColor(score);
+  const fillColor = getColor(percent);
 
   useEffect(() => {
     requestAnimationFrame(() => setFillHeight(percent));

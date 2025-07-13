@@ -22,16 +22,37 @@ class PolicyRequestManager {
   private async init() {
     console.log("[PRM] Loading settings...");
     const loaded = await storageAPI.get<Settings>("settings");
-    this.settings = loaded ?? null;
+    const devMode = import.meta.env.MODE === "development";
 
-    if (!this.settings) {
-      console.error("[PRM] Failed to load settings.");
-      return;
+    // Costruzione fallback settings
+    let fallback: Settings = {
+      useCache: true,
+      promptSummaryLength: 150,
+      llms: [],
+      activeLLM: "",
+    };
+
+    if (devMode) {
+      const devLLM: LLMConfig = {
+        id: "dev",
+        name: "dev test GPT",
+        endpoint: import.meta.env.VITE_OPENAI_BASEURL,
+        apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+      };
+      fallback.llms = [devLLM];
+      fallback.activeLLM = "dev";
+    }
+
+    this.settings = loaded ?? fallback;
+
+    // Se settings erano vuoti e siamo in dev, salviamo quelli appena creati
+    if (!loaded && devMode) {
+      await storageAPI.save("settings", this.settings);
+      console.log("[PRM] Injected default dev LLM into settings.");
     }
 
     this.llm =
-      this.settings.llms.find((llm) => llm.id === this.settings?.activeLLM) ??
-      null;
+      this.settings.llms.find((l) => l.id === this.settings?.activeLLM) ?? null;
 
     if (!this.llm) {
       console.error("[PRM] No active LLM found.");
@@ -43,7 +64,7 @@ class PolicyRequestManager {
         this.llm.endpoint,
         this.llm.apiKey
       );
-      console.log("[PRM] LLM client initialized");
+      console.log("[PRM] LLM client initialized.");
     } catch (e) {
       console.error("[PRM] Failed to initialize LLM client:", e);
       this.client = null;
@@ -56,33 +77,42 @@ class PolicyRequestManager {
       return null;
     }
 
-    console.log("[PRM] Building prompt...");
-    const summaryLength = this.settings.promptSummaryLength || 150;
+    const summaryLength = this.settings.promptSummaryLength ?? 150;
 
     try {
-      const fileUrl = browser.runtime.getURL("/prompts/summarize.txt");
-      const promptTemplate = await fetch(fileUrl).then((r) => r.text());
+      const promptURL = browser.runtime.getURL("/prompts/summarize.txt");
+      const promptTemplate = await fetch(promptURL).then((r) => r.text());
 
       const prompt = promptTemplate
         .replace("{{Document}}", policyText)
         .replace("{{SummaryLength}}", summaryLength.toString());
 
-      console.log("[PRM] Sending prompt to model...");
-      const rawResponse = await this.client.sendGenPrompt(
-        prompt,
-        "",
-        "gpt-4o-mini"
-      );
+      const raw = await this.client.sendGenPrompt(prompt, "", "gpt-4o-mini");
+      if (!raw) return null;
 
-      if (!rawResponse) {
-        console.error("[PRM] LLM returned null.");
-        return null;
+      const parsed: PolicyResponse = JSON.parse(raw);
+
+      parsed.full_text = policyText;
+      parsed.maxScore = parsed.maxScore ?? 100;
+      parsed.indicators =
+        parsed.indicators?.map((ind) => ({
+          ...ind,
+          maxScore: ind.maxScore ?? 5,
+        })) ?? [];
+      parsed.analysed_at = new Date().toISOString();
+      parsed.model_used = "gpt-4o-mini";
+
+      try {
+        const tabs = await browser.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        const url = tabs?.[0]?.url;
+        parsed.domain = url ? new URL(url).hostname : undefined;
+      } catch (e) {
+        console.warn("[PRM] Failed to extract domain:", e);
       }
 
-      const parsed: PolicyResponse = JSON.parse(rawResponse);
-      parsed.full_text = policyText;
-
-      console.log("[PRM] Response received and parsed.");
       return parsed;
     } catch (e) {
       console.error("[PRM] Error during analysis:", e);
