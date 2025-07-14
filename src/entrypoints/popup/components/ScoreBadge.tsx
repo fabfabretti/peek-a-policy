@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 type ScoreBadgeProps = {
   score: number;
   maxScore: number;
+  variant?: "default" | "compact";
 };
 
 const getColor = (score: number): string => {
@@ -11,7 +12,11 @@ const getColor = (score: number): string => {
   return "#ef4444"; // rosso
 };
 
-const ScoreBadge = ({ score, maxScore }: ScoreBadgeProps) => {
+const ScoreBadge = ({
+  score,
+  maxScore,
+  variant = "default",
+}: ScoreBadgeProps) => {
   const [fillHeight, setFillHeight] = useState(0);
   const percent = Math.min(100, (score / maxScore) * 100);
   const fillColor = getColor(percent);
@@ -20,9 +25,22 @@ const ScoreBadge = ({ score, maxScore }: ScoreBadgeProps) => {
     requestAnimationFrame(() => setFillHeight(percent));
   }, [percent]);
 
+  if (variant === "compact") {
+    return (
+      <div className="flex items-center space-x-1">
+        <div
+          className="w-4 h-4 rounded-full"
+          style={{ backgroundColor: fillColor }}
+        />
+        <span className="text-sm font-medium text-gray-800">
+          {score}/{maxScore}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-24 h-24 rounded-full border-2 border-gray-300 overflow-hidden shadow-inner">
-      {/* Riempimento principale */}
       <div
         className="absolute bottom-0 left-0 w-full transition-all duration-1000 ease-out"
         style={{
@@ -30,8 +48,6 @@ const ScoreBadge = ({ score, maxScore }: ScoreBadgeProps) => {
           backgroundColor: fillColor,
         }}
       />
-
-      {/* Onda animata */}
       <div
         className="absolute left-0 w-full transition-all duration-1000 ease-out"
         style={{
@@ -62,8 +78,6 @@ const ScoreBadge = ({ score, maxScore }: ScoreBadgeProps) => {
           </path>
         </svg>
       </div>
-
-      {/* Testo */}
       <div className="absolute inset-0 flex items-center justify-center font-bold text-black">
         {score}/{maxScore}
       </div>

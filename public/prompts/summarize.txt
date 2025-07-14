@@ -2,25 +2,35 @@ Summarize the key points of this privacy policy in no more than {{SummaryLength}
 Make it clear, concise, and easy to read. Be as precise as possible to the original material. Point out if any critical information is missing.
 Here is the policy: {{Document}}
 
-The response should be in the following JSON format. Do not, under any circumstance, put the JSON object in a blockquote. Do not add any comment, only respond with the JSON in this format:
+The response should be in the following JSON format. Do not, under any circumstance, put the JSON object in a blockquote. Do not add any comment, only respond with the JSON in this format. In the "details" sections, make sure to point out all the flaws you found. 
 
 {
     "summary": # a string with the summary of the policy
-    "score": # an overall FLOAT score (0-100) for the policy, calculated based on the indicators
+    "score": # an overall FLOAT score (0-100) for the policy, calculated based on the indicators.
     "maxScore": 100, # the fixed maximum score for the overall policy
 
     "indicators": [
         {
             "title": "User score",
-            "details": # a string explaining how good the policy is from the viewpoint of an end user
+            "details": # a string explaining how good the policy is from the viewpoint of an end user; for example, collecting a lot of data, giving little control, selling data, etc should INSTANTLY GIVE VERY LOW scores (0-1)
             "score": # a FLOAT number between 0 and 5
-            "maxScore": 5
+            "maxScore": 5,
+            "description": "How favorable and respectful this policy is from the user's standpoint."
         },
         {
-            "title": "Law score",
-            "details": # a string explaining how complete and clear the policy is
+            "title": "Compliance score",
+            "details": # a string explaining if the policy is compliant with GDPR and other regulations.
             "score": # a FLOAT number between 0 and 5
-            "maxScore": 5
+            "maxScore": 5,
+            "description":"How compliant the policy is with GDPR and other privacy regulations.
+
+        },
+        {
+            "title": "Transparency score",
+            "details": # a string explaining how concise, easy to read, and transparent the policy is. For example, if the policy is long or uses law-like words, it's gonna get a 0.
+            "score": # a FLOAT number between 0 and 5
+            "maxScore": 5,
+            "description":"How transparent and easy to understand the policy corpus is:"
         }
     ]
 }

@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@heroui/button";
+import { Accordion, AccordionItem } from "@heroui/accordion";
 import { Card } from "@heroui/card";
+import { Tooltip } from "@heroui/tooltip";
 import ScoreBadge from "../../components/ScoreBadge";
 import storageAPI from "@/utils/storageAPI";
 import { PolicyResponse, Settings } from "@/utils/types/types";
 import { browser } from "wxt/browser";
+
+const getColor = (score: number): string => {
+  if (score >= 80) return "#22c55e";
+  if (score >= 50) return "#eab308";
+  return "#ef4444";
+};
 
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +49,7 @@ const ResultPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="container text-sm text-gray-600 p-4 text-center">
+      <div className="w-[480px] p-4 text-sm text-gray-600 text-center">
         Loading result...
       </div>
     );
@@ -49,7 +57,7 @@ const ResultPage: React.FC = () => {
 
   if (!policy) {
     return (
-      <div className="container flex flex-col items-center gap-3 p-4">
+      <div className="w-[480px] p-4 flex flex-col items-center gap-3">
         <h2 className="text-red-500 font-semibold text-sm">
           Invalid or missing data
         </h2>
@@ -66,24 +74,22 @@ const ResultPage: React.FC = () => {
 
   return (
     <div className="w-[480px] p-4 flex flex-col items-center gap-4">
-      {/* Titolo */}
-      <h1 className="text-lg font-bold text-primary text-center">
-        Analysis Result
+      {/* Titolo + dominio */}
+      <h1 className="text-2xl font-bold text-primary text-center break-words">
+        Results for {policy.domain}
       </h1>
 
       {/* Metadati */}
-      <div className="text-xs text-gray-600 text-center space-y-1">
-        {policy.domain && (
-          <div>
-            Domain:{" "}
-            <span className="font-medium break-words">{policy.domain}</span>
-          </div>
+      <div className="flex flex-wrap justify-center gap-2 text-xs">
+        {policy.model_used && (
+          <span className="px-2 py-0.5 rounded-md border-2 border-primary text-primary bg-white">
+            Model: {policy.model_used}
+          </span>
         )}
-        {policy.model_used && <div>Model used: {policy.model_used}</div>}
         {policy.analysed_at && (
-          <div>
-            Analysed at: {new Date(policy.analysed_at).toLocaleString()}
-          </div>
+          <span className="px-2 py-0.5 rounded-md border-2 border-primary text-primary bg-white">
+            {new Date(policy.analysed_at).toLocaleString()}
+          </span>
         )}
       </div>
 
@@ -98,22 +104,50 @@ const ResultPage: React.FC = () => {
       {/* Riassunto */}
       <Card className="w-full p-3 bg-white shadow-sm">
         <h2 className="text-sm font-semibold mb-1">Policy Summary</h2>
-        <p className="text-xs text-gray-800">{policy.summary}</p>
+        <p className="text-sm text-gray-800">{policy.summary}</p>
       </Card>
 
       {/* Indicatori */}
-      <div className="flex flex-row gap-3 mt-1 w-full justify-between">
+      <Accordion selectionMode="multiple" variant="bordered" className="w-full">
         {policy.indicators?.map((ind, i) => (
-          <div
+          <AccordionItem
             key={i}
-            className="flex-1 flex flex-col items-center gap-1 text-center"
+            textValue={ind.title + ind.score + "/" + ind.maxScore}
+            title=""
+            startContent={
+              <div className="flex items-center gap-2">
+                <div className="w-[48px] flex items-center gap-2 pr-1">
+                  <div
+                    className="min-w-3 min-h-3 w-3 h-3 rounded-full shrink-0"
+                    style={{
+                      backgroundColor: getColor(
+                        (ind.score / ind.maxScore) * 100
+                      ),
+                    }}
+                  />
+                  <span className="text-sm font-medium">
+                    {ind.score}/{ind.maxScore}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium text-gray-800">
+                    {ind.title}
+                  </span>
+                  <Tooltip content={ind.description}>
+                    <span className="text-xs text-gray-500 cursor-help select-none">
+                      ?
+                    </span>
+                  </Tooltip>
+                </div>
+              </div>
+            }
           >
-            <ScoreBadge score={ind.score} maxScore={ind.maxScore} />
-            <div className="text-xs font-medium text-gray-800">{ind.title}</div>
-            <p className="text-[11px] text-gray-600 px-1">{ind.details}</p>
-          </div>
+            <Card className="w-full mt-1 p-3 bg-white shadow-sm">
+              <p className="text-sm text-gray-800">{ind.details}</p>
+            </Card>
+          </AccordionItem>
         ))}
-      </div>
+      </Accordion>
 
       {/* Back */}
       <Button

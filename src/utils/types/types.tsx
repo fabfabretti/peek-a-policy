@@ -26,6 +26,7 @@ export type LLMConfig = {
   name: string;
   endpoint: string;
   apiKey: string;
+  model: string;
 };
 
 export type Settings = {

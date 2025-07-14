@@ -38,6 +38,7 @@ class PolicyRequestManager {
         name: "dev test GPT",
         endpoint: import.meta.env.VITE_OPENAI_BASEURL,
         apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+        model: "gpt-4o-mini",
       };
       fallback.llms = [devLLM];
       fallback.activeLLM = "dev";
@@ -72,6 +73,7 @@ class PolicyRequestManager {
   }
 
   async analysePolicy(policyText: string): Promise<PolicyResponse | null> {
+    await this.init();
     if (!this.client || !this.settings || !this.llm) {
       console.error("[PRM] Cannot analyse: missing client or settings.");
       return null;
@@ -87,7 +89,7 @@ class PolicyRequestManager {
         .replace("{{Document}}", policyText)
         .replace("{{SummaryLength}}", summaryLength.toString());
 
-      const raw = await this.client.sendGenPrompt(prompt, "", "gpt-4o-mini");
+      const raw = await this.client.sendGenPrompt(prompt, "", this.llm.model);
       if (!raw) return null;
 
       const parsed: PolicyResponse = JSON.parse(raw);
@@ -100,7 +102,7 @@ class PolicyRequestManager {
           maxScore: ind.maxScore ?? 5,
         })) ?? [];
       parsed.analysed_at = new Date().toISOString();
-      parsed.model_used = "gpt-4o-mini";
+      parsed.model_used = this.llm.name;
 
       try {
         const tabs = await browser.tabs.query({

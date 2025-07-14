@@ -14,6 +14,7 @@ function HomePage() {
   const [isInvalid, setIsInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [domainHasCache, setDomainHasCache] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const noRedirect = searchParams.get("noRedirect");
@@ -50,6 +51,8 @@ function HomePage() {
   }, []);
 
   const analysePolicy = async () => {
+    setErrorMsg("");
+
     if (fullPolicyText.trim() === "") {
       setIsInvalid(true);
       return;
@@ -63,7 +66,14 @@ function HomePage() {
       const result = await manager.analysePolicy(fullPolicyText);
 
       if (!result) {
-        alert("Analysis failed.");
+        setErrorMsg(
+          "Coudln't connect to the LLM.\n Please double check your LLM endpoint and key."
+        );
+        return;
+      }
+
+      if ((result as any).error) {
+        setErrorMsg("The analysis failed: " + (result as any).error);
         return;
       }
 
@@ -82,14 +92,27 @@ function HomePage() {
       navigate("/results");
     } catch (e) {
       console.error("Error during analysis:", e);
-      alert("Something went wrong.");
+      setErrorMsg("Unexpected error. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-[480px] p-4 flex flex-col items-center gap-4">
+    <div className="relative w-[480px] p-4 flex flex-col items-center gap-4">
+      {/* Bottone Impostazioni */}
+      <div className="absolute top-2 right-2">
+        <Button
+          size="sm"
+          color="primary"
+          variant="ghost"
+          className="px-2 py-1"
+          onPress={() => navigate("/settings")}
+        >
+          ⚙️
+        </Button>
+      </div>
+
       <div className="title-wrapper relative inline-block">
         <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md">
           Peek-a-Policy
@@ -100,7 +123,6 @@ function HomePage() {
         Paste the policy you'd like to analyse here.
       </p>
 
-      {/* ✅ Banner per dominio già analizzato */}
       {domainHasCache && (
         <div className="w-full max-w-md border border-primary bg-primary/10 rounded-md p-3 text-sm text-primary text-center">
           This domain has already been analyzed.
@@ -136,6 +158,13 @@ function HomePage() {
       >
         {isLoading ? "Loading..." : "Start Analysis"}
       </Button>
+
+      {/* Messaggio di errore */}
+      {errorMsg && (
+        <div className="text-sm text-red-500 whitespace-pre-line text-center mt-2">
+          {errorMsg}
+        </div>
+      )}
     </div>
   );
 }
