@@ -9,7 +9,6 @@ const DEFAULT_SETTINGS: Settings = {
   useCache: true,
   llms: [],
   activeLLM: "",
-  promptSummaryLength: 150,
 };
 
 const SettingsPage: React.FC = () => {
@@ -82,15 +81,8 @@ const SettingsPage: React.FC = () => {
     setAddingLLM(false);
   };
 
-  const handleSummaryLengthChange = (val: string | number) => {
-    const num = Number(val);
-    if (!isNaN(num)) {
-      updateAndSave({ ...settings, promptSummaryLength: num });
-    }
-  };
-
   return (
-    <div className="w-[480px] overflow-hidden space-y-6 bg-white rounded-xl shadow p-6">
+    <div className="w-[480px] overflowx-hidden space-y-6 bg-white rounded-xl shadow p-6">
       {" "}
       <h2 className="text-2xl font-bold text-primary text-center">Settings</h2>
       {/* Cache */}
@@ -237,18 +229,6 @@ const SettingsPage: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
-      {/* Prompt */}
-      <div className="space-y-4 pt-2">
-        <h3 className="text-lg font-semibold text-primary">Prompt Options</h3>
-        <Input
-          label="Summary length (words)"
-          type="number"
-          min={10}
-          max={1000}
-          value={String(settings.promptSummaryLength)}
-          onValueChange={handleSummaryLengthChange}
-        />
       </div>
       {/* Back */}
       <div className="flex justify-center pt-6">

@@ -9,7 +9,6 @@ export async function initDefaultSettingsIfNeeded() {
   if (!existing) {
     const settings: Settings = {
       useCache: true,
-      promptSummaryLength: 150,
       llms: [],
       activeLLM: "",
     };

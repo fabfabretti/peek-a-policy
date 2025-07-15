@@ -3,6 +3,8 @@ import storageAPI from "@/utils/storageAPI";
 import { Settings, PolicyResponse, LLMConfig } from "@/utils/types/types";
 import LLMApiManager from "./LLMAPIManager";
 
+import { initDefaultSettingsIfNeeded } from "./initDefaultSettings";
+
 class PolicyRequestManager {
   private static instance: PolicyRequestManager;
   private settings: Settings | null = null;
@@ -21,35 +23,14 @@ class PolicyRequestManager {
 
   private async init() {
     console.log("[PRM] Loading settings...");
-    const loaded = await storageAPI.get<Settings>("settings");
-    const devMode = import.meta.env.MODE === "development";
 
-    // Costruzione fallback settings
-    let fallback: Settings = {
-      useCache: true,
-      promptSummaryLength: 150,
-      llms: [],
-      activeLLM: "",
-    };
+    await initDefaultSettingsIfNeeded();
 
-    if (devMode) {
-      const devLLM: LLMConfig = {
-        id: "dev",
-        name: "dev test GPT",
-        endpoint: import.meta.env.VITE_OPENAI_BASEURL,
-        apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-        model: "gpt-4o-mini",
-      };
-      fallback.llms = [devLLM];
-      fallback.activeLLM = "dev";
-    }
+    this.settings = (await storageAPI.get<Settings>("settings")) ?? null;
 
-    this.settings = loaded ?? fallback;
-
-    // Se settings erano vuoti e siamo in dev, salviamo quelli appena creati
-    if (!loaded && devMode) {
-      await storageAPI.save("settings", this.settings);
-      console.log("[PRM] Injected default dev LLM into settings.");
+    if (!this.settings) {
+      console.error("[PRM] Failed to load settings after init.");
+      return;
     }
 
     this.llm =
@@ -79,15 +60,13 @@ class PolicyRequestManager {
       return null;
     }
 
-    const summaryLength = this.settings.promptSummaryLength ?? 150;
-
     try {
-      const promptURL = browser.runtime.getURL("/prompts/summarize.txt");
+      const promptURL = browser.runtime.getURL(
+        "/prompts/summarize_bullet+ex.txt"
+      );
       const promptTemplate = await fetch(promptURL).then((r) => r.text());
 
-      const prompt = promptTemplate
-        .replace("{{Document}}", policyText)
-        .replace("{{SummaryLength}}", summaryLength.toString());
+      const prompt = promptTemplate.replace("{{Document}}", policyText);
 
       const raw = await this.client.sendGenPrompt(prompt, "", this.llm.model);
       if (!raw) return null;

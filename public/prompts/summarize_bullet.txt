@@ -1,0 +1,35 @@
+    Extract and summarize the following privacy policy according to the requirements of Article 13 of the GDPR.
+    Use simple language suitable for a Grade 6 reading level.
+    The result must be a valid JSON object, with the summary in a bulleted list format under the "summary" field.
+
+    - Do not put the JSON in a code block
+    - Do not add any explanation or comment before or after the JSON
+
+In the "summary" field, cover the following points (write "not specified" if missing):
+
+    Controller identity and contact details
+
+    Data Protection Officer (DPO) contact details (if any)
+
+    Purposes of processing and legal basis
+
+    Legitimate interests (if processing is based on Art. 6(1)(f))
+
+    Data recipients or categories of recipients
+
+    Transfers to third countries or international organizations
+
+    Data retention period or criteria used to determine it
+
+    Data subject rights (access, correction, deletion, limitation, objection, portability)
+
+    Right to withdraw consent (if consent is the legal basis)
+
+    Right to complain to a privacy authority
+
+    If data must be given and what happens if it's not
+
+    Use of automated decisions or profiling
+
+TEXT:
+{{Document}}

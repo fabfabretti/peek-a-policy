@@ -14,7 +14,7 @@ export type PolicyResponse = {
   summary: string; // A short summary of the policy
   score?: number; // Overall score for the policy
   maxScore: number; // 100
-  indicators: Indicator[]; // Array of indicators
+  indicators?: Indicator[]; // Array of indicators
 
   model_used?: string; // Modello LLM usato ("gpt-4", ecc.)
   analysed_at?: string; // Timestamp ISO della generazione
@@ -33,7 +33,6 @@ export type Settings = {
   useCache: boolean;
   llms: LLMConfig[];
   activeLLM: string;
-  promptSummaryLength: number;
 };
 
 export const testResponse: PolicyResponse = {
