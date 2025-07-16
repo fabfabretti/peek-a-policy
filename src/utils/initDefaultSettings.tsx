@@ -1,5 +1,6 @@
 import storageAPI from "@/utils/storageAPI";
 import { Settings, LLMConfig } from "@/utils/types/types";
+import { GDPR_EXAMPLES } from "./promptUtils";
 
 export async function initDefaultSettingsIfNeeded() {
   const devMode = import.meta.env.MODE === "development";
@@ -11,6 +12,7 @@ export async function initDefaultSettingsIfNeeded() {
       useCache: true,
       llms: [],
       activeLLM: "",
+      activeGDPRFields: Object.keys(GDPR_EXAMPLES),
     };
     await storageAPI.save("settings", settings);
     console.log("[INIT] Created empty settings.");

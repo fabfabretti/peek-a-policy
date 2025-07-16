@@ -2,8 +2,8 @@ import { browser } from "wxt/browser";
 import storageAPI from "@/utils/storageAPI";
 import { Settings, PolicyResponse, LLMConfig } from "@/utils/types/types";
 import LLMApiManager from "./LLMAPIManager";
-
 import { initDefaultSettingsIfNeeded } from "./initDefaultSettings";
+import { generateGDPRPrompt } from "./promptUtils";
 
 class PolicyRequestManager {
   private static instance: PolicyRequestManager;
@@ -27,6 +27,7 @@ class PolicyRequestManager {
     await initDefaultSettingsIfNeeded();
 
     this.settings = (await storageAPI.get<Settings>("settings")) ?? null;
+    console.log("[PRM] Loaded settings:", this.settings);
 
     if (!this.settings) {
       console.error("[PRM] Failed to load settings after init.");
@@ -61,15 +62,12 @@ class PolicyRequestManager {
     }
 
     try {
-      const promptURL = browser.runtime.getURL(
-        "/prompts/summarize_bullet+ex.txt"
-      );
-      const promptTemplate = await fetch(promptURL).then((r) => r.text());
-
-      const prompt = promptTemplate.replace("{{Document}}", policyText);
+      const prompt = generateGDPRPrompt(policyText, this.settings);
 
       const raw = await this.client.sendGenPrompt(prompt, "", this.llm.model);
       if (!raw) return null;
+
+      console.log(raw);
 
       const parsed: PolicyResponse = JSON.parse(raw);
 
@@ -93,6 +91,7 @@ class PolicyRequestManager {
       } catch (e) {
         console.warn("[PRM] Failed to extract domain:", e);
       }
+      console.log(parsed);
 
       return parsed;
     } catch (e) {

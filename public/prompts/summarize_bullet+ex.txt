@@ -1,34 +1,38 @@
-Extract and summarize the following privacy policy according to the requirements of Article 13 of the GDPR.
-Use simple language suitable for a Grade 6 reading level.
+Summarize the following privacy policy according to Article 13 of the GDPR.
 
-The result must be a valid JSON object. Do not, under any circumstance, put the JSON in a code block. Do not add any comment, markdown, or introductory sentence — only return the JSON.
+Write in simple, clear English suitable for a Grade 6 reading level.  
+Your output must be a valid JSON object. Do not add any comments or formatting. Do not use code blocks.
 
-In the "summary" field, provide a bullet list covering the following points (write "not specified" if missing):
+The summary must be a bullet-point list where each bullet is a short sentence or paragraph (1–2 sentences max) covering one of the following aspects. Avoid using labels like "Who is..." or "What is...". Write in a narrative and informative style. If a point is not covered, write a sentence like: "It is not clear who collects the data."
+Use **bold** (with `**`) to highlight important keywords (such as names, countries, or time periods), and _italics_ (with `_`) to emphasize conditions or optional aspects. Do not bold section titles or turn the bullet points into question/answer format.
 
-- Controller identity and contact details
-- Data Protection Officer (DPO) contact details (if any)
-- Purposes of processing and legal basis
-- Legitimate interests (if processing is based on Art. 6(1)(f))
-- Data recipients or categories of recipients
-- Transfers to third countries or international organizations
-- Data retention period or criteria used to determine it
-- Data subject rights (access, correction, deletion, limitation, objection, portability)
-- Right to withdraw consent (if consent is the legal basis)
-- Right to complain to a privacy authority
-- If data must be given and what happens if it's not
-- Use of automated decisions or profiling
+Include the following topics:
 
-TEXT:
+- Who collects the data
+- Contact details of the controller
+- Contact details of the DPO (if mentioned)
+- Why the data is collected and the legal reason
+- Any legitimate interests mentioned
+- Who the data is shared with
+- Whether data is transferred outside the EU
+- How long data is kept
+- The rights people have over their data
+- Whether consent can be withdrawn
+- Whether complaints can be sent to a privacy authority
+- If giving data is required and what happens if not
+- Whether automated decisions or profiling are used
+
+TEXT:  
 {{Document}}
 
-If the input is not a valid privacy policy or cannot be analyzed, return this instead:
+If the input is not a privacy policy, return:
 
 {
-  "error": "The provided text is not a valid privacy policy."
+  "error": "The provided text is not a privacy policy."
 }
 
 Example output:
 
 {
-  "summary": "- **Who is collecting your data:** ABC Company (privacy@abc.com)\n- **Who is the DPO:** Not specified\n- **Why they collect data and legal reason:** To provide services you ask for; based on your consent\n- **Legitimate interests:** Not specified\n- **Who gets your data:** Partners and service providers\n- **Transfers outside the EU:** Yes, to trusted partners in the US\n- **How long they keep your data:** For 2 years after your last use\n- **Your rights:** You can ask to see, fix, delete, or move your data, or stop its use\n- **Can you change your mind?:** Yes, you can withdraw consent anytime\n- **Complaints:** You can contact the privacy authority\n- **Do you have to give data?:** Yes, for using the service. If not, you may not be able to use it\n- **Automatic decisions?:** No automated decisions or profiling"
+  "summary": "- The data is collected by the Wikimedia Foundation.\n- You can contact them at privacy@wikimedia.org.\n- The policy mentions a DPO named Vincent Rezzouk-Hammachi.\n- Data is collected to improve the service, based on legitimate interest.\n- Improving user experience is stated as a legitimate interest.\n- Data may be shared with service providers and legal authorities.\n- Some data is transferred to the United States and other countries.\n- Data is usually kept for 90 days, but some contributions are stored permanently.\n- Users have rights to access, correct, delete, or limit use of their data.\n- Consent can be withdrawn at any time.\n- People can file complaints with privacy authorities.\n- It is not specified if giving data is mandatory, but it may be needed for some features.\n- The policy does not clearly say whether automated decisions are used."
 }

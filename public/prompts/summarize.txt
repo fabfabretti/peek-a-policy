@@ -2,9 +2,6 @@ Summarize the key points of this privacy policy in no more than {{SummaryLength}
 Make it clear, concise, and easy to read. Be as precise as possible to the original material. Point out if any critical information is missing.
 Here is the policy: {{Document}}
 
-// + STRUTTURATO
-// GENERARE UN RIASSUNTO PER UN CERTO TARGET DI PERSONE (ES PER LIVELLO DI COMPRENSIBILITà STUDENTI DI GRADE LEVEL 8)
-
 The response should be in the following JSON format. Do not, under any circumstance, put the JSON object in a blockquote. Do not add any comment, only respond with the JSON in this format. In the "details" sections, make sure to point out all the flaws you found. 
 
 {

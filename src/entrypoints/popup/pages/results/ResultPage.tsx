@@ -8,6 +8,7 @@ import ScoreBadge from "../../components/ScoreBadge";
 import storageAPI from "@/utils/storageAPI";
 import { PolicyResponse, Settings } from "@/utils/types/types";
 import { browser } from "wxt/browser";
+import { marked } from "marked";
 
 const getColor = (score: number): string => {
   if (score >= 80) return "#22c55e";
@@ -104,50 +105,59 @@ const ResultPage: React.FC = () => {
       {/* Riassunto */}
       <Card className="w-full p-3 bg-white shadow-sm">
         <h2 className="text-sm font-semibold mb-1">Policy Summary</h2>
-        <p className="text-sm text-gray-800">{policy.summary}</p>
+        <div
+          className="prose prose-sm text-gray-700 leading-snug [&>ul]:list-disc [&>ul]:pl-5 [&>ul>li]:mb-1"
+          dangerouslySetInnerHTML={{ __html: marked(policy.summary || "") }}
+        />
       </Card>
 
       {/* Indicatori */}
-      <Accordion selectionMode="multiple" variant="bordered" className="w-full">
-        {policy.indicators?.map((ind, i) => (
-          <AccordionItem
-            key={i}
-            textValue={ind.title + ind.score + "/" + ind.maxScore}
-            title=""
-            startContent={
-              <div className="flex items-center gap-2">
-                <div className="w-[48px] flex items-center gap-2 pr-1">
-                  <div
-                    className="min-w-3 min-h-3 w-3 h-3 rounded-full shrink-0"
-                    style={{
-                      backgroundColor: getColor(
-                        (ind.score / ind.maxScore) * 100
-                      ),
-                    }}
-                  />
-                  <span className="text-sm font-medium">
-                    {ind.score}/{ind.maxScore}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-medium text-gray-800">
-                    {ind.title}
-                  </span>
-                  <Tooltip content={ind.description}>
-                    <span className="text-xs text-gray-500 cursor-help select-none">
-                      ?
+      {policy.indicators && policy.indicators.length > 0 && (
+        <Accordion
+          selectionMode="multiple"
+          variant="bordered"
+          className="w-full"
+        >
+          {policy.indicators.map((ind, i) => (
+            <AccordionItem
+              key={i}
+              textValue={ind.title + ind.score + "/" + ind.maxScore}
+              title=""
+              startContent={
+                <div className="flex items-center gap-2">
+                  <div className="w-[48px] flex items-center gap-2 pr-1">
+                    <div
+                      className="min-w-3 min-h-3 w-3 h-3 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: getColor(
+                          (ind.score / ind.maxScore) * 100
+                        ),
+                      }}
+                    />
+                    <span className="text-sm font-medium">
+                      {ind.score}/{ind.maxScore}
                     </span>
-                  </Tooltip>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium text-gray-800">
+                      {ind.title}
+                    </span>
+                    <Tooltip content={ind.description}>
+                      <span className="text-xs text-gray-500 cursor-help select-none">
+                        ?
+                      </span>
+                    </Tooltip>
+                  </div>
                 </div>
-              </div>
-            }
-          >
-            <Card className="w-full mt-1 p-3 bg-white shadow-sm">
-              <p className="text-sm text-gray-800">{ind.details}</p>
-            </Card>
-          </AccordionItem>
-        ))}
-      </Accordion>
+              }
+            >
+              <Card className="w-full mt-1 p-3 bg-white shadow-sm">
+                <p className="text-sm text-gray-800">{ind.details}</p>
+              </Card>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      )}
 
       {/* Back */}
       <Button

@@ -33,6 +33,7 @@ export type Settings = {
   useCache: boolean;
   llms: LLMConfig[];
   activeLLM: string;
+  activeGDPRFields: string[];
 };
 
 export const testResponse: PolicyResponse = {

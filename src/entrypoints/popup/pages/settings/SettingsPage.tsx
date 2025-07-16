@@ -1,21 +1,22 @@
 import React, { useEffect, useState, ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@heroui/button";
-import { Switch, Input } from "@heroui/react";
+import { Switch, Input, Accordion, AccordionItem } from "@heroui/react";
 import storageAPI from "@/utils/storageAPI";
 import { LLMConfig, Settings } from "@/utils/types/types";
+import { GDPR_EXAMPLES } from "@/utils/promptUtils";
 
 const DEFAULT_SETTINGS: Settings = {
   useCache: true,
   llms: [],
   activeLLM: "",
+  activeGDPRFields: Object.keys(GDPR_EXAMPLES),
 };
 
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
-
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [addingLLM, setAddingLLM] = useState<boolean>(false);
+  const [addingLLM, setAddingLLM] = useState(false);
   const [newLLM, setNewLLM] = useState<LLMConfig>({
     id: "",
     name: "",
@@ -28,7 +29,7 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     (async () => {
       const stored = await storageAPI.get<Settings>("settings");
-      setSettings(stored ?? DEFAULT_SETTINGS);
+      setSettings({ ...DEFAULT_SETTINGS, ...stored });
 
       const bytes = await storageAPI.getPolicyCacheBytes();
       setCacheSize(bytes);
@@ -37,85 +38,73 @@ const SettingsPage: React.FC = () => {
 
   const updateAndSave = (newSettings: Settings) => {
     setSettings(newSettings);
-    storageAPI.save<Settings>("settings", newSettings);
+    storageAPI.save("settings", newSettings);
   };
 
-  const handleToggleCache = (val: boolean) => {
-    updateAndSave({ ...settings, useCache: val });
-  };
-
-  const handleClearCache = async () => {
-    await storageAPI.clearPolicyCache();
-    const size = await storageAPI.getPolicyCacheBytes();
-    setCacheSize(size);
-    alert("Policy cache cleared.");
-  };
-
-  const selectLLM = (id: string) => {
-    updateAndSave({ ...settings, activeLLM: id });
-  };
-
-  const removeLLM = (id: string) => {
-    const updated = settings.llms.filter((llm: LLMConfig) => llm.id !== id);
-    const newActive =
-      settings.activeLLM === id && updated.length > 0
-        ? updated[0].id
-        : settings.activeLLM === id
-        ? ""
-        : settings.activeLLM;
-    updateAndSave({ ...settings, llms: updated, activeLLM: newActive });
-  };
-
-  const handleAddLLM = () => {
-    if (!newLLM.name || !newLLM.endpoint || !newLLM.apiKey || !newLLM.model) {
-      alert("All fields required"); // TODO LA SCRITTINA ROSSA
-      return;
-    }
-    const newEntry: LLMConfig = { ...newLLM, id: Date.now().toString() };
-    updateAndSave({
-      ...settings,
-      llms: [...settings.llms, newEntry],
-      activeLLM: newEntry.id,
-    });
-    setNewLLM({ id: "", name: "", endpoint: "", apiKey: "", model: "" });
-    setAddingLLM(false);
+  const toggleGDPRField = (field: string) => {
+    const current = settings.activeGDPRFields ?? [];
+    const exists = current.includes(field);
+    const updated = exists
+      ? current.filter((f) => f !== field)
+      : [...current, field];
+    updateAndSave({ ...settings, activeGDPRFields: updated });
   };
 
   return (
-    <div className="w-[480px] overflowx-hidden space-y-6 bg-white rounded-xl shadow p-6">
-      {" "}
+    <div className="relative w-[480px] p-4 flex flex-col items-center gap-4">
+      {/* Pulsante Home */}
+      <div className="absolute top-2 right-2">
+        <Button
+          size="sm"
+          color="primary"
+          variant="ghost"
+          className="px-2 py-1"
+          onPress={() => navigate("/")}
+        >
+          🏠
+        </Button>
+      </div>
+
       <h2 className="text-2xl font-bold text-primary text-center">Settings</h2>
+
       {/* Cache */}
-      <div className="space-y-4">
+      <div className="w-full space-y-2">
         <h3 className="text-lg font-semibold text-primary">Cache</h3>
         <div className="flex justify-between items-center">
-          <label className="text-sm text-gray-700">Use cached results</label>
+          <span className="text-sm text-gray-700">Use cached results</span>
           <Switch
             isSelected={settings.useCache}
-            onValueChange={handleToggleCache}
+            onValueChange={(val) =>
+              updateAndSave({ ...settings, useCache: val })
+            }
           />
         </div>
-        <p className="text-xs text-gray-500 text-right">
-          Cache size: {(cacheSize / 1024).toFixed(1)} KB
-        </p>
-        <div className="flex justify-center">
+        <div className="flex justify-between items-center text-xs text-gray-500">
+          <span>Cache size: {(cacheSize / 1024).toFixed(1)} KB</span>
           <Button
+            size="sm"
             variant="ghost"
             color="secondary"
-            onPress={handleClearCache}
-            className="border border-secondary hover:bg-secondary hover:text-white"
+            onPress={async () => {
+              await storageAPI.clearPolicyCache();
+              const size = await storageAPI.getPolicyCacheBytes();
+              setCacheSize(size);
+              alert("Policy cache cleared.");
+            }}
+            className="border border-secondary hover:bg-secondary hover:text-white text-xs"
           >
             Clear cache
           </Button>
         </div>
       </div>
+
       {/* LLMs */}
-      <div className="space-y-4">
+      <div className="space-y-4 w-full">
         <h3 className="text-lg font-semibold text-primary">
           LLM Configuration
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {settings.llms.map((llm: LLMConfig) => (
+          {settings.llms.map((llm) => (
             <div
               key={llm.id}
               className={`cursor-pointer rounded-lg border p-4 space-y-1 text-sm transition-all ${
@@ -124,12 +113,14 @@ const SettingsPage: React.FC = () => {
                   : "border-gray-300 bg-gray-50 hover:border-primary"
               }`}
             >
-              <div onClick={() => selectLLM(llm.id)}>
+              <div
+                onClick={() =>
+                  updateAndSave({ ...settings, activeLLM: llm.id })
+                }
+              >
                 <div className="font-semibold">{llm.name}</div>
-                <div className="text-xs text-gray-400">
-                  Model: {llm.model ?? "[no model]"}
-                </div>
-                <div className="text-xs  text-gray-400 break-all">
+                <div className="text-xs text-gray-400">Model: {llm.model}</div>
+                <div className="text-xs text-gray-400 break-all">
                   Endpoint: {llm.endpoint}
                 </div>
                 <div className="text-xs text-gray-400 truncate">
@@ -141,7 +132,20 @@ const SettingsPage: React.FC = () => {
                   size="sm"
                   variant="ghost"
                   color="secondary"
-                  onPress={() => removeLLM(llm.id)}
+                  onPress={() => {
+                    const filtered = settings.llms.filter(
+                      (l) => l.id !== llm.id
+                    );
+                    const active =
+                      settings.activeLLM === llm.id
+                        ? filtered[0]?.id ?? ""
+                        : settings.activeLLM;
+                    updateAndSave({
+                      ...settings,
+                      llms: filtered,
+                      activeLLM: active,
+                    });
+                  }}
                   className="border border-secondary hover:bg-secondary hover:text-white"
                 >
                   Remove
@@ -172,7 +176,7 @@ const SettingsPage: React.FC = () => {
               size="sm"
               value={newLLM.name}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewLLM((p: LLMConfig) => ({ ...p, name: e.target.value }))
+                setNewLLM((p) => ({ ...p, name: e.target.value }))
               }
             />
             <Input
@@ -180,10 +184,7 @@ const SettingsPage: React.FC = () => {
               size="sm"
               value={newLLM.endpoint}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewLLM((p: LLMConfig) => ({
-                  ...p,
-                  endpoint: e.target.value,
-                }))
+                setNewLLM((p) => ({ ...p, endpoint: e.target.value }))
               }
             />
             <Input
@@ -192,28 +193,37 @@ const SettingsPage: React.FC = () => {
               type="password"
               value={newLLM.apiKey}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewLLM((p: LLMConfig) => ({
-                  ...p,
-                  apiKey: e.target.value,
-                }))
+                setNewLLM((p) => ({ ...p, apiKey: e.target.value }))
               }
             />
             <Input
-              label="Model (e.g. gpt-4o, llama3)"
+              label="Model (e.g. gpt-4o)"
               size="sm"
               value={newLLM.model}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewLLM((p: LLMConfig) => ({
-                  ...p,
-                  model: e.target.value,
-                }))
+                setNewLLM((p) => ({ ...p, model: e.target.value }))
               }
             />
             <div className="flex justify-center gap-2">
               <Button
                 variant="ghost"
                 color="primary"
-                onPress={handleAddLLM}
+                onPress={() => {
+                  const entry = { ...newLLM, id: Date.now().toString() };
+                  updateAndSave({
+                    ...settings,
+                    llms: [...settings.llms, entry],
+                    activeLLM: entry.id,
+                  });
+                  setNewLLM({
+                    id: "",
+                    name: "",
+                    endpoint: "",
+                    apiKey: "",
+                    model: "",
+                  });
+                  setAddingLLM(false);
+                }}
                 className="border border-primary hover:bg-primary hover:text-white"
               >
                 Save
@@ -230,17 +240,26 @@ const SettingsPage: React.FC = () => {
           </div>
         )}
       </div>
-      {/* Back */}
-      <div className="flex justify-center pt-6">
-        <Button
-          variant="ghost"
-          color="primary"
-          onPress={() => navigate("/")}
-          className="border border-primary hover:bg-primary hover:text-white"
-        >
-          ← Back to Home
-        </Button>
-      </div>
+
+      {/* Prompt options */}
+      <Accordion variant="bordered" selectionMode="multiple">
+        <AccordionItem key="advanced" title="Advanced prompt settings">
+          <div className="space-y-3 pt-2">
+            {Object.entries(GDPR_EXAMPLES).map(([field, example]) => (
+              <div
+                key={field}
+                className="flex justify-between items-center border-b pb-2"
+              >
+                <div className="text-sm text-gray-700 w-3/4">{field}</div>
+                <Switch
+                  isSelected={settings.activeGDPRFields?.includes(field)}
+                  onValueChange={() => toggleGDPRField(field)}
+                />
+              </div>
+            ))}
+          </div>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 };
