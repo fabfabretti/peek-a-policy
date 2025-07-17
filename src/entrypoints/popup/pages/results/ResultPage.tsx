@@ -121,6 +121,37 @@ const ResultPage: React.FC = () => {
         )}
       </div>
 
+      {policy.readability?.fullText && policy.readability?.summary && (
+        <Card className="w-full max-w-[360px] mx-auto p-3 bg-white shadow-sm border flex flex-row items-center justify-between text-sm gap-4">
+          {/* FULL TEXT */}
+          <div className="flex flex-col items-center text-center flex-1">
+            <ReadabilityDot score={policy.readability.fullText.ease} />
+            <div className="mt-1 text-gray-800 font-medium">
+              {policy.readability.fullText.label}
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              Grade {policy.readability.fullText.grade} <br />
+              FKS {policy.readability.fullText.ease}
+            </div>
+          </div>
+
+          {/* FRECCIA */}
+          <div className="text-xl text-gray-400">→</div>
+
+          {/* SUMMARY */}
+          <div className="flex flex-col items-center text-center flex-1">
+            <ReadabilityDot score={policy.readability.summary.ease} />
+            <div className="mt-1 text-gray-800 font-medium">
+              {policy.readability.summary.label}
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              Grade {policy.readability.summary.grade} <br />
+              FKS {policy.readability.summary.ease}
+            </div>
+          </div>
+        </Card>
+      )}
+
       <Card className="w-full p-3 bg-white shadow-sm">
         <h2 className="text-sm font-semibold mb-1">Policy Summary</h2>
         <div
@@ -195,3 +226,24 @@ const ResultPage: React.FC = () => {
 };
 
 export default ResultPage;
+
+const ReadabilityDot: React.FC<{ score: number }> = ({ score }) => {
+  const color = getReadabilityColor(score);
+  return (
+    <div
+      className="w-4 h-4 rounded-full shrink-0"
+      style={{ backgroundColor: color }}
+      title={`Flesch score: ${score}`}
+    />
+  );
+};
+
+const getReadabilityColor = (score: number): string => {
+  if (score >= 90) return "#22c55e"; // very easy
+  if (score >= 80) return "#4ade80";
+  if (score >= 70) return "#a3e635";
+  if (score >= 60) return "#facc15";
+  if (score >= 50) return "#f97316";
+  if (score >= 30) return "#f43f5e";
+  return "#991b1b"; // very difficult
+};
