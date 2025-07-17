@@ -121,13 +121,6 @@ const ResultPage: React.FC = () => {
         )}
       </div>
 
-      <div className="mt-2">
-        <ScoreBadge score={policy.score ?? 0} maxScore={policy.maxScore} />
-        <div className="text-xs text-center text-gray-700 mt-1">
-          Overall Score
-        </div>
-      </div>
-
       <Card className="w-full p-3 bg-white shadow-sm">
         <h2 className="text-sm font-semibold mb-1">Policy Summary</h2>
         <div

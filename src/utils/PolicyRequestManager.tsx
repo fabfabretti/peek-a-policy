@@ -6,6 +6,7 @@ import { initDefaultSettingsIfNeeded } from "./initDefaultSettings";
 import { generateGDPRPrompt } from "./promptUtils";
 import { generateIndicatorsPrompt } from "./promptUtils";
 import { Indicator } from "@/utils/types/types";
+import { computeReadabilityInfo } from "./readabilityUtils";
 
 class PolicyRequestManager {
   private static instance: PolicyRequestManager;
@@ -83,6 +84,11 @@ class PolicyRequestManager {
       parsed.analysed_at = new Date().toISOString();
       parsed.model_used = this.llm.name;
 
+      parsed.readability = {
+        fullText: computeReadabilityInfo(policyText),
+        summary: computeReadabilityInfo(parsed.summary || ""),
+      };
+
       try {
         const tabs = await browser.tabs.query({
           active: true,
@@ -119,7 +125,7 @@ class PolicyRequestManager {
 
     try {
       const raw = await this.client.sendGenPrompt(prompt, "", this.llm.model);
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(raw || "");
 
       if (parsed.error) {
         console.warn(

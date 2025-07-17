@@ -20,6 +20,10 @@ export type PolicyResponse = {
   model_used?: string; // Modello LLM usato ("gpt-4", ecc.)
   analysed_at?: string; // Timestamp ISO della generazione
   domain?: string; // Dominio a cui la policy si riferisce
+  readability?: {
+    fullText: ReadabilityInfo;
+    summary: ReadabilityInfo;
+  };
 };
 
 export type LLMConfig = {
@@ -67,4 +71,10 @@ export const testResponse: PolicyResponse = {
       category: "compliance",
     },
   ],
+};
+
+export type ReadabilityInfo = {
+  ease: number; // Flesch Reading Ease score
+  grade: number; // Flesch-Kincaid Grade Level
+  label: string; // Readable label (e.g., "standard", "difficult")
 };
