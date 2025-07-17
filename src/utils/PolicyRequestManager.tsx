@@ -4,6 +4,8 @@ import { Settings, PolicyResponse, LLMConfig } from "@/utils/types/types";
 import LLMApiManager from "./LLMAPIManager";
 import { initDefaultSettingsIfNeeded } from "./initDefaultSettings";
 import { generateGDPRPrompt } from "./promptUtils";
+import { generateIndicatorsPrompt } from "./promptUtils";
+import { Indicator } from "@/utils/types/types";
 
 class PolicyRequestManager {
   private static instance: PolicyRequestManager;
@@ -97,6 +99,52 @@ class PolicyRequestManager {
     } catch (e) {
       console.error("[PRM] Error during analysis:", e);
       return null;
+    }
+  }
+
+  async enrichWithIndicators(
+    response: PolicyResponse
+  ): Promise<PolicyResponse> {
+    if (!this.client || !this.settings || !this.llm) {
+      console.error("[PRM] Cannot enrich: missing client or settings.");
+      return response;
+    }
+
+    if (!response.summary) {
+      console.warn("[PRM] Cannot enrich: missing summary.");
+      return response;
+    }
+
+    const prompt = generateIndicatorsPrompt(response.summary);
+
+    try {
+      const raw = await this.client.sendGenPrompt(prompt, "", this.llm.model);
+      const parsed = JSON.parse(raw);
+
+      if (parsed.error) {
+        console.warn(
+          "[PRM] LLM returned error during indicator generation:",
+          parsed.error
+        );
+        return {
+          ...response,
+          indicators: [],
+          error: parsed.error,
+        };
+      }
+
+      const indicators = parsed.response as Indicator[];
+      return {
+        ...response,
+        indicators,
+      };
+    } catch (e) {
+      console.error("[PRM] Failed to enrich with indicators:", e);
+      return {
+        ...response,
+        indicators: [],
+        error: "Failed to generate indicators",
+      };
     }
   }
 }

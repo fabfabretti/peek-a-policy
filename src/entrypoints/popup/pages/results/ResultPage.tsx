@@ -6,9 +6,10 @@ import { Card } from "@heroui/card";
 import { Tooltip } from "@heroui/tooltip";
 import ScoreBadge from "../../components/ScoreBadge";
 import storageAPI from "@/utils/storageAPI";
-import { PolicyResponse, Settings } from "@/utils/types/types";
+import { PolicyResponse, Settings, Indicator } from "@/utils/types/types";
 import { browser } from "wxt/browser";
 import { marked } from "marked";
+import PolicyRequestManager from "@/utils/PolicyRequestManager";
 
 const getColor = (score: number): string => {
   if (score >= 80) return "#22c55e";
@@ -19,10 +20,13 @@ const getColor = (score: number): string => {
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
   const [policy, setPolicy] = useState<PolicyResponse | null>(null);
+  const [indicators, setIndicators] = useState<Indicator[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingIndicators, setLoadingIndicators] = useState(false);
+  const [domain, setDomain] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
+    const loadPolicy = async () => {
       try {
         const tabs = await browser.tabs.query({
           active: true,
@@ -31,8 +35,11 @@ const ResultPage: React.FC = () => {
         const url = tabs?.[0]?.url;
         if (!url) throw new Error("No URL");
         const domain = new URL(url).hostname;
+        setDomain(domain);
+
         const result = await storageAPI.get<PolicyResponse>(domain);
         setPolicy(result ?? null);
+        setIndicators(result?.indicators ?? null);
 
         const settings = await storageAPI.get<Settings>("settings");
         if (settings && !settings.useCache) {
@@ -45,8 +52,30 @@ const ResultPage: React.FC = () => {
         setLoading(false);
       }
     };
-    load();
+
+    loadPolicy();
   }, []);
+
+  useEffect(() => {
+    const fetchIndicators = async () => {
+      if (!policy || indicators?.length) return;
+
+      setLoadingIndicators(true);
+      const manager = await PolicyRequestManager.getInstance();
+      const enriched = await manager.enrichWithIndicators(policy);
+      setIndicators(enriched.indicators ?? []);
+      setLoadingIndicators(false);
+
+      if (domain) {
+        await storageAPI.save(domain, {
+          ...policy,
+          indicators: enriched.indicators,
+        });
+      }
+    };
+
+    fetchIndicators();
+  }, [policy, indicators, domain]);
 
   if (loading) {
     return (
@@ -75,12 +104,10 @@ const ResultPage: React.FC = () => {
 
   return (
     <div className="w-[480px] p-4 flex flex-col items-center gap-4">
-      {/* Titolo + dominio */}
       <h1 className="text-2xl font-bold text-primary text-center break-words">
         Results for {policy.domain}
       </h1>
 
-      {/* Metadati */}
       <div className="flex flex-wrap justify-center gap-2 text-xs">
         {policy.model_used && (
           <span className="px-2 py-0.5 rounded-md border-2 border-primary text-primary bg-white">
@@ -94,7 +121,6 @@ const ResultPage: React.FC = () => {
         )}
       </div>
 
-      {/* Score principale */}
       <div className="mt-2">
         <ScoreBadge score={policy.score ?? 0} maxScore={policy.maxScore} />
         <div className="text-xs text-center text-gray-700 mt-1">
@@ -102,7 +128,6 @@ const ResultPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Riassunto */}
       <Card className="w-full p-3 bg-white shadow-sm">
         <h2 className="text-sm font-semibold mb-1">Policy Summary</h2>
         <div
@@ -111,14 +136,19 @@ const ResultPage: React.FC = () => {
         />
       </Card>
 
-      {/* Indicatori */}
-      {policy.indicators && policy.indicators.length > 0 && (
+      {loadingIndicators && (
+        <div className="text-sm text-gray-500 animate-pulse mt-2">
+          Generating indicators...
+        </div>
+      )}
+
+      {indicators && indicators.length > 0 && (
         <Accordion
           selectionMode="multiple"
           variant="bordered"
           className="w-full"
         >
-          {policy.indicators.map((ind, i) => (
+          {indicators.map((ind, i) => (
             <AccordionItem
               key={i}
               textValue={ind.title + ind.score + "/" + ind.maxScore}
@@ -159,7 +189,6 @@ const ResultPage: React.FC = () => {
         </Accordion>
       )}
 
-      {/* Back */}
       <Button
         color="primary"
         variant="solid"

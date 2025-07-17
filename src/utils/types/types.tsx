@@ -15,6 +15,7 @@ export type PolicyResponse = {
   score?: number; // Overall score for the policy
   maxScore: number; // 100
   indicators?: Indicator[]; // Array of indicators
+  error?: string;
 
   model_used?: string; // Modello LLM usato ("gpt-4", ecc.)
   analysed_at?: string; // Timestamp ISO della generazione

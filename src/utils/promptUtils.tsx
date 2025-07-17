@@ -72,3 +72,38 @@ If the input is not a privacy policy, return:
   "error": "The provided text is not a privacy policy."
 }`;
 }
+
+export function generateIndicatorsPrompt(summary: string): string {
+  return `Given the following summary of a privacy policy, generate a JSON object in the following format:
+
+
+{
+  "response": [
+    {
+      "title": string,        // short invented title for the topic (e.g., "Data Sharing")
+      "score": number,        // number from 0 to 5, decimals allowed
+      "maxScore": 5,
+      "details": string,      // explain how well the policy handles this point
+      "description": string   // fixed explanation of what this concept is about (e.g., what "Data Retention" means)
+    }
+  ]
+}
+
+You must include one entry in the array for **each bullet point** in the summary.
+
+Guidelines:
+- If the bullet is vague or the info is missing → score = 0
+- If the info is harmful to the user (e.g., "data may be sold") → score = 0–1
+- If neutral or unclear or otherwise not perfect → score = 2–3-4
+- If clear and user-friendly → score = 5
+
+Return only the JSON object, without any code block, preamble, or explanation.
+
+SUMMARY:
+${summary}
+If you cannot process the summary, or the format is not clear, return:
+
+{
+  "error": "Reason for failure"
+}`;
+}
