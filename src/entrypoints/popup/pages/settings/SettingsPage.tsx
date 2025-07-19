@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: Settings = {
   llms: [],
   activeLLM: "",
   activeGDPRFields: Object.keys(GDPR_EXAMPLES),
+  includeReadability: true, // Default to including readability info
 };
 
 const SettingsPage: React.FC = () => {
@@ -257,6 +258,17 @@ const SettingsPage: React.FC = () => {
                 />
               </div>
             ))}
+          </div>
+          <div className="flex justify-between items-center border-b pb-2 pt-2">
+            <div className="text-sm text-gray-700 w-3/4">
+              Include readability in analysis
+            </div>
+            <Switch
+              isSelected={settings.includeReadability}
+              onValueChange={(val) =>
+                updateAndSave({ ...settings, includeReadability: val })
+              }
+            />
           </div>
         </AccordionItem>
       </Accordion>

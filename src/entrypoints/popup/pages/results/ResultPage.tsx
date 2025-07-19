@@ -121,36 +121,39 @@ const ResultPage: React.FC = () => {
         )}
       </div>
 
-      {policy.readability?.fullText && policy.readability?.summary && (
-        <Card className="w-full max-w-[360px] mx-auto p-3 bg-white shadow-sm border flex flex-row items-center justify-between text-sm gap-4">
-          {/* FULL TEXT */}
-          <div className="flex flex-col items-center text-center flex-1">
-            <ReadabilityDot score={policy.readability.fullText.ease} />
-            <div className="mt-1 text-gray-800 font-medium">
-              {policy.readability.fullText.label}
-            </div>
-            <div className="text-xs text-gray-500 mt-0.5">
-              Grade {policy.readability.fullText.grade} <br />
-              FKS {policy.readability.fullText.ease}
-            </div>
-          </div>
-
-          {/* FRECCIA */}
-          <div className="text-xl text-gray-400">→</div>
-
-          {/* SUMMARY */}
-          <div className="flex flex-col items-center text-center flex-1">
-            <ReadabilityDot score={policy.readability.summary.ease} />
-            <div className="mt-1 text-gray-800 font-medium">
-              {policy.readability.summary.label}
-            </div>
-            <div className="text-xs text-gray-500 mt-0.5">
-              Grade {policy.readability.summary.grade} <br />
-              FKS {policy.readability.summary.ease}
-            </div>
+      {loadingIndicators ? (
+        <div className="text-sm text-gray-500 animate-pulse mt-2">
+          Computing estimated evaluation...
+        </div>
+      ) : indicators && indicators.length > 0 ? (
+        <Card className="w-full max-w-[360px] mx-auto p-3 bg-white shadow-sm border text-center">
+          <h3 className="text-sm font-semibold text-gray-800 mb-1">
+            Estimated Evaluation
+          </h3>
+          <div className="flex justify-center items-center gap-2 text-sm font-medium">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{
+                backgroundColor: getColor(
+                  indicators.reduce(
+                    (acc, i) => acc + (i.score / i.maxScore) * 100,
+                    0
+                  ) / indicators.length
+                ),
+              }}
+            />
+            <span>
+              {(
+                indicators.reduce(
+                  (acc, i) => acc + (i.score / i.maxScore) * 100,
+                  0
+                ) / indicators.length
+              ).toFixed(1)}{" "}
+              / 100
+            </span>
           </div>
         </Card>
-      )}
+      ) : null}
 
       <Card className="w-full p-3 bg-white shadow-sm">
         <h2 className="text-sm font-semibold mb-1">Policy Summary</h2>
