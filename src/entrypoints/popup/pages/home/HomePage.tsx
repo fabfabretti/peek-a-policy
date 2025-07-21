@@ -119,10 +119,6 @@ function HomePage() {
         </h1>
       </div>
 
-      <p className="subtitle text-base text-gray-800 text-center">
-        Paste the policy you'd like to analyse here.
-      </p>
-
       {domainHasCache && (
         <div className="w-full max-w-md border border-primary bg-primary/10 rounded-md p-3 text-sm text-primary text-center">
           This domain has already been analyzed.
@@ -137,6 +133,10 @@ function HomePage() {
         </div>
       )}
 
+      <p className="subtitle text-base text-gray-800 text-center">
+        Paste the policy you'd like to analyse here.
+      </p>
+
       <Textarea
         placeholder="Paste your policy here..."
         minRows={10}
@@ -150,14 +150,16 @@ function HomePage() {
           setFullPolicyText(e.target.value);
         }}
       />
-      <Button
-        color="primary"
-        variant="solid"
-        onPress={analysePolicy}
-        disabled={isLoading}
-      >
-        {isLoading ? "Loading..." : "Start Analysis"}
-      </Button>
+
+      {isLoading ? (
+        <div className="text-sm text-gray-500 animate-pulse text-center mt-1">
+          Analysing policy...
+        </div>
+      ) : (
+        <Button color="primary" variant="solid" onPress={analysePolicy}>
+          Start Analysis
+        </Button>
+      )}
 
       {/* Messaggio di errore */}
       {errorMsg && (
