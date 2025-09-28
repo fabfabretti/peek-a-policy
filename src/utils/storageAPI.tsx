@@ -6,6 +6,7 @@ const storageAPI = {
   async save<T>(key: string, value: T) {
     try {
       await storage.setItem<T>(`local:${key}`, value);
+
       console.log(`Saved ${key}`);
     } catch (e) {
       console.error(`Failed to save ${key}: ${e}`);

@@ -121,40 +121,6 @@ const ResultPage: React.FC = () => {
         )}
       </div>
 
-      {loadingIndicators ? (
-        <div className="text-sm text-gray-500 animate-pulse mt-2">
-          Computing estimated evaluation...
-        </div>
-      ) : indicators && indicators.length > 0 ? (
-        <Card className="w-full max-w-[360px] mx-auto p-3 bg-white shadow-sm border text-center">
-          <h3 className="text-sm font-semibold text-gray-800 mb-1">
-            Estimated Evaluation
-          </h3>
-          <div className="flex justify-center items-center gap-2 text-sm font-medium">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{
-                backgroundColor: getColor(
-                  indicators.reduce(
-                    (acc, i) => acc + (i.score / i.maxScore) * 100,
-                    0
-                  ) / indicators.length
-                ),
-              }}
-            />
-            <span>
-              {(
-                indicators.reduce(
-                  (acc, i) => acc + (i.score / i.maxScore) * 100,
-                  0
-                ) / indicators.length
-              ).toFixed(1)}{" "}
-              / 100
-            </span>
-          </div>
-        </Card>
-      ) : null}
-
       <Card className="w-full p-3 bg-white shadow-sm">
         <h2 className="text-sm font-semibold mb-1">Policy Summary</h2>
         <div
@@ -175,44 +141,96 @@ const ResultPage: React.FC = () => {
           variant="bordered"
           className="w-full"
         >
-          {indicators.map((ind, i) => (
-            <AccordionItem
-              key={i}
-              textValue={ind.title + ind.score + "/" + ind.maxScore}
-              title=""
-              startContent={
-                <div className="flex items-center gap-2">
-                  <div className="w-[48px] flex items-center gap-2 pr-1">
-                    <div
-                      className="min-w-3 min-h-3 w-3 h-3 rounded-full shrink-0"
-                      style={{
-                        backgroundColor: getColor(
-                          (ind.score / ind.maxScore) * 100
-                        ),
-                      }}
-                    />
-                    <span className="text-sm font-medium">
-                      {ind.score}/{ind.maxScore}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-medium text-gray-800">
-                      {ind.title}
-                    </span>
-                    <Tooltip content={ind.description}>
-                      <span className="text-xs text-gray-500 cursor-help select-none">
-                        ?
+          {[
+            ...indicators.map((ind, i) => (
+              <AccordionItem
+                key={i}
+                textValue={ind.title + ind.score + "/" + ind.maxScore}
+                title=""
+                startContent={
+                  <div className="flex items-center gap-2">
+                    <div className="w-[48px] flex items-center gap-2 pr-1">
+                      <div
+                        className="min-w-3 min-h-3 w-3 h-3 rounded-full shrink-0"
+                        style={{
+                          backgroundColor: getColor(
+                            (ind.score / ind.maxScore) * 100
+                          ),
+                        }}
+                      />
+                      <span className="text-sm font-medium">
+                        {ind.score}/{ind.maxScore}
                       </span>
-                    </Tooltip>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-medium text-gray-800">
+                        {ind.title}
+                      </span>
+                      <Tooltip content={ind.description}>
+                        <span className="text-xs text-gray-500 cursor-help select-none">
+                          ?
+                        </span>
+                      </Tooltip>
+                    </div>
                   </div>
-                </div>
-              }
-            >
-              <Card className="w-full mt-1 p-3 bg-white shadow-sm">
-                <p className="text-sm text-gray-800">{ind.details}</p>
-              </Card>
-            </AccordionItem>
-          ))}
+                }
+              >
+                <Card className="w-full mt-1 p-3 bg-white shadow-sm">
+                  <p className="text-sm text-gray-800">{ind.details}</p>
+                </Card>
+              </AccordionItem>
+            )),
+            policy.readability ? (
+              <AccordionItem
+                key={"readability"}
+                textValue={getReadability5(
+                  policy.readability.fullText.ease
+                ).toString()}
+                title={""}
+                startContent={
+                  <div className="flex items-center gap-2">
+                    <div className="w-[48px] flex items-center gap-2 pr-1">
+                      <div
+                        className="min-w-3 min-h-3 w-3 h-3 rounded-full shrink-0"
+                        style={{
+                          backgroundColor: getColor(
+                            policy.readability.fullText.ease
+                          ),
+                        }}
+                      />
+                      <span className="text-sm font-medium">
+                        {getReadability5(policy.readability.fullText.ease)}/5
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm font-medium text-gray-800">
+                        {"Original Policy's readability"}
+                      </span>
+                      <Tooltip
+                        content={
+                          "This section computes whether the original policy was difficult to read."
+                        }
+                      >
+                        <span className="text-xs text-gray-500 cursor-help select-none">
+                          ?
+                        </span>
+                      </Tooltip>
+                    </div>
+                  </div>
+                }
+              >
+                <Card className="w-full mt-1 p-3 bg-white shadow-sm">
+                  <p className="text-sm text-gray-800">
+                    {"The original policy's readability level can be classified as " +
+                      policy.readability.fullText.label +
+                      "."}
+                  </p>
+                </Card>
+              </AccordionItem>
+            ) : (
+              <div></div>
+            ),
+          ]}
         </Accordion>
       )}
 
@@ -230,23 +248,6 @@ const ResultPage: React.FC = () => {
 
 export default ResultPage;
 
-const ReadabilityDot: React.FC<{ score: number }> = ({ score }) => {
-  const color = getReadabilityColor(score);
-  return (
-    <div
-      className="w-4 h-4 rounded-full shrink-0"
-      style={{ backgroundColor: color }}
-      title={`Flesch score: ${score}`}
-    />
-  );
-};
-
-const getReadabilityColor = (score: number): string => {
-  if (score >= 90) return "#22c55e"; // very easy
-  if (score >= 80) return "#4ade80";
-  if (score >= 70) return "#a3e635";
-  if (score >= 60) return "#facc15";
-  if (score >= 50) return "#f97316";
-  if (score >= 30) return "#f43f5e";
-  return "#991b1b"; // very difficult
-};
+function getReadability5(ease: number): number {
+  return Math.max(1, Math.min(5, Math.round(ease / 20)));
+}

@@ -107,6 +107,7 @@ class PolicyRequestManager {
       return null;
     }
   }
+
   async enrichWithIndicators(
     response: PolicyResponse
   ): Promise<PolicyResponse> {
@@ -138,42 +139,7 @@ class PolicyRequestManager {
         };
       }
 
-      let indicators = parsed.response as Indicator[];
-
-      // Add readability indicator if enabled
-      if (
-        this.settings.includeReadability &&
-        response.readability?.fullText?.ease != null
-      ) {
-        const easeScore = response.readability.fullText.ease;
-        const grade = response.readability.fullText.grade;
-        const label = response.readability.fullText.label || "unknown";
-
-        const clampedEase = Math.max(0, Math.min(100, easeScore));
-        const normalized = Math.round(clampedEase / 20);
-
-        // Etichetta educativa in base al grado
-        let educationLevel = "unknown";
-        if (grade <= 5) educationLevel = "elementary school";
-        else if (grade <= 8) educationLevel = "middle school";
-        else if (grade <= 12) educationLevel = "high school";
-        else if (grade <= 16) educationLevel = "university";
-        else educationLevel = "postgraduate";
-
-        indicators.push({
-          title: "Readability of the original policy",
-          score: normalized,
-          maxScore: 5,
-          details: `The original policy has a score of ${clampedEase.toFixed(
-            1
-          )} in the Flesch Reading Ease scale, making it suitable for grade ${Math.round(
-            grade
-          )} readers (${educationLevel}, ${label}).`,
-          description:
-            "Uses Flesch Reading Ease to estimate how difficult the original policy is to read.",
-        });
-      }
-
+      const indicators = parsed.response as Indicator[];
       return {
         ...response,
         indicators,

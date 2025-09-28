@@ -39,7 +39,38 @@ export type Settings = {
   llms: LLMConfig[];
   activeLLM: string;
   activeGDPRFields: string[];
-  includeReadability?: boolean;
+};
+
+export const testResponse: PolicyResponse = {
+  full_text: "Test full length text",
+  summary: "Test summary",
+  score: 85,
+  maxScore: 100,
+  analysed_at: "2025-07-12T12:00:00Z",
+  model_used: "gpt-4o-mini",
+  domain: "example.com",
+  indicators: [
+    {
+      title: "User score",
+      details: "Respects user privacy",
+      score: 4.5,
+      maxScore: 5,
+      description:
+        "This score reflects how good the policy is for the end user. A higher score means the policy is more respectful of user privacy.",
+      weight: 0.5,
+      category: "privacy",
+    },
+    {
+      title: "Law score",
+      details: "Mostly GDPR compliant",
+      score: 4.0,
+      maxScore: 5,
+      description:
+        "This score reflects how complete and clear the policy is from a legal perspective. A higher score means the policy is more compliant with legal requirements.",
+      weight: 0.5,
+      category: "compliance",
+    },
+  ],
 };
 
 export type ReadabilityInfo = {

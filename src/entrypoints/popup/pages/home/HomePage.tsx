@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@heroui/button";
+import { Tooltip } from "@heroui/tooltip";
 import { Textarea } from "@heroui/react";
 import { useSearchParams } from "react-router";
 import { browser } from "wxt/browser";
@@ -18,6 +19,7 @@ function HomePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const noRedirect = searchParams.get("noRedirect");
+  const [autoRetrieveLoading, setAutoRetrieveLoading] = useState(false);
 
   useEffect(() => {
     const checkCache = async () => {
@@ -41,13 +43,6 @@ function HomePage() {
     };
 
     checkCache();
-
-    if (import.meta.env.MODE === "development") {
-      fetch("/testdata/testpolicy.txt")
-        .then((r) => r.text())
-        .then(setFullPolicyText)
-        .catch((e) => console.error("Failed to load test policy:", e));
-    }
   }, []);
 
   const analysePolicy = async () => {
@@ -98,10 +93,34 @@ function HomePage() {
     }
   };
 
+  const handleAutoRetrieve = async () => {
+    setAutoRetrieveLoading(true);
+    try {
+      const content = await storageAPI.get<string>("currentpagecontent");
+      if (content === "not found") {
+        setErrorMsg("Could not retrieve policy. Please paste it manually.");
+        setFullPolicyText("");
+        setIsInvalid(true);
+      } else if (content) {
+        setFullPolicyText(content);
+        setIsInvalid(false);
+      }
+    } finally {
+      setAutoRetrieveLoading(false);
+    }
+  };
+
   return (
     <div className="relative w-[480px] p-4 flex flex-col items-center gap-4">
-      {/* Bottone Impostazioni */}
-      <div className="absolute top-2 right-2">
+      {/* Title row */}
+      <div className="w-full flex justify-center mb-2">
+        <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md text-center">
+          Peek-a-Policy
+        </h1>
+      </div>
+
+      {/* Settings button in top-right */}
+      <div className="absolute top-2 right-2 z-10">
         <Button
           size="sm"
           color="primary"
@@ -113,11 +132,9 @@ function HomePage() {
         </Button>
       </div>
 
-      <div className="title-wrapper relative inline-block">
-        <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md">
-          Peek-a-Policy
-        </h1>
-      </div>
+      <p className="subtitle text-base text-gray-800 text-center">
+        Paste the policy you'd like to analyse here.
+      </p>
 
       {domainHasCache && (
         <div className="w-full max-w-md border border-primary bg-primary/10 rounded-md p-3 text-sm text-primary text-center">
@@ -133,38 +150,58 @@ function HomePage() {
         </div>
       )}
 
-      <p className="subtitle text-base text-gray-800 text-center">
-        Paste the policy you'd like to analyse here.
-      </p>
-
       <Textarea
         placeholder="Paste your policy here..."
         minRows={10}
         maxRows={10}
-        errorMessage="The policy cannot be empty."
-        isInvalid={isInvalid}
+        errorMessage={
+          errorMsg || (isInvalid ? "The policy cannot be empty." : undefined)
+        }
+        isInvalid={!!errorMsg || isInvalid}
         variant="bordered"
         value={fullPolicyText}
         onChange={(e) => {
           setIsInvalid(e.target.value === "");
           setFullPolicyText(e.target.value);
+          if (errorMsg) setErrorMsg("");
         }}
       />
 
+      {/* Analyse and Auto-retrieve buttons or loading message */}
       {isLoading ? (
-        <div className="text-sm text-gray-500 animate-pulse text-center mt-1">
+        <div className="text-sm text-gray-500 animate-pulse mt-2 mb-2 w-full text-center">
           Analysing policy...
         </div>
       ) : (
-        <Button color="primary" variant="solid" onPress={analysePolicy}>
-          Start Analysis
-        </Button>
-      )}
-
-      {/* Messaggio di errore */}
-      {errorMsg && (
-        <div className="text-sm text-red-500 whitespace-pre-line text-center mt-2">
-          {errorMsg}
+        <div className="w-full flex flex-row justify-center items-start gap-2 mb-2">
+          <div className="flex flex-col items-center">
+            <span>
+              <Button
+                size="sm"
+                color="primary"
+                variant="ghost"
+                className="min-w-[120px] text-sm px-3 py-1"
+                onPress={handleAutoRetrieve}
+                isLoading={autoRetrieveLoading}
+                disabled={autoRetrieveLoading}
+              >
+                🔄 Auto-retrieve
+              </Button>
+            </span>
+            <span className="text-[10px] text-gray-400 mt-0.5">
+              experimental
+            </span>
+          </div>
+          <Button
+            size="sm"
+            color="primary"
+            variant="solid"
+            className="min-w-[120px] text-sm px-3 py-1"
+            onPress={analysePolicy}
+            disabled={isLoading}
+          >
+            Start Analysis
+          </Button>
         </div>
       )}
     </div>
