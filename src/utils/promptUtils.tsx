@@ -69,8 +69,9 @@ ${exampleSummary}
 If the input is not a privacy policy, return:
 
 {
-  "error": "The provided text is not a privacy policy."
-}`;
+  "error": "The provided text is not a privacy policy. <<...>>"
+}
+  and explain what it is instead of <<...>>`;
 }
 
 export function generateIndicatorsPrompt(summary: string): string {

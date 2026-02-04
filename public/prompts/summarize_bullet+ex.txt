@@ -28,7 +28,7 @@ TEXT:
 If the input is not a privacy policy, return:
 
 {
-  "error": "The provided text is not a privacy policy."
+  "error": "The provided text is not a privacy policy.<<insert here explanation of what it is instead>>"
 }
 
 Example output:
