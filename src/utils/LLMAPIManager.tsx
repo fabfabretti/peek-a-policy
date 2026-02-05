@@ -1,13 +1,14 @@
-import OpenAI from "openai";
-import { APIError, APIConnectionError, RateLimitError } from "openai/error";
-
-// Non più necessaria la funzione formatErrorForAlert
-
 /**
+ * utils/LLMAPIManager.tsx
+ *
  * LLMApiManager is a Singleton class responsible for managing interactions
  * with an OpenAI-compatible LLM API.
  * Its configuration (baseURL, apiKey) can be updated via subsequent calls to getInstance.
  */
+
+import OpenAI from "openai";
+import { APIError, APIConnectionError, RateLimitError } from "openai/error";
+
 export class LLMApiManager {
   private static instance: LLMApiManager | null = null;
   private client: OpenAI;
@@ -31,9 +32,11 @@ export class LLMApiManager {
     } catch (e: any) {
       // RIPRISTINATO: console.error
       console.error(
-        `Failed to initialize OpenAI client with baseURL "${baseURL}": ${e.message}`
+        `[LLMAPIMANAGER] Failed to initialize OpenAI client with baseURL "${baseURL}": ${e.message}`,
       );
-      throw new Error(`Failed to initialize OpenAI client: ${e.message}`);
+      throw new Error(
+        `[LLMAPIMANAGER] Failed to initialize OpenAI client: ${e.message}`,
+      );
     }
   }
 
@@ -49,9 +52,9 @@ export class LLMApiManager {
    */
   public static getInstance(baseURL: string, apiKey: string): LLMApiManager {
     if (!baseURL || !apiKey) {
-      // L'originale lanciava un errore, che è corretto.
-      // Non c'era un console.error qui prima.
-      throw new Error("BaseURL and APIKey must be provided to getInstance.");
+      throw new Error(
+        "[LLMAPIMANAGER] BaseURL and APIKey must be provided to getInstance.",
+      );
     }
 
     if (
@@ -67,7 +70,6 @@ export class LLMApiManager {
         LLMApiManager.instance = null;
         LLMApiManager.currentConfiguredBaseURL = null;
         LLMApiManager.currentConfiguredApiKey = null;
-        // L'errore viene già loggato (ora come console.error) dal costruttore
         throw error;
       }
     }
@@ -88,18 +90,17 @@ export class LLMApiManager {
     prompt: string,
     sysprompt: string = "",
     model: string,
-    temperature?: number
+    temperature?: number,
   ): Promise<string | null> {
     if (!this.client) {
-      // RIPRISTINATO: console.error
       console.error(
-        "LLMApiManager client is not initialized. Call getInstance() first."
+        "[LLMAPIMANAGER] LLMApiManager client is not initialized. Call getInstance() first.",
       );
       return null;
     }
     if (!model) {
       // RIPRISTINATO: console.error
-      console.error("Model must be provided to sendGenPrompt.");
+      console.error("[LLMAPIMANAGER] Model must be provided to sendGenPrompt.");
       return null;
     }
 
@@ -120,22 +121,23 @@ export class LLMApiManager {
         requestOptions.temperature = temperature;
       }
 
-      const response = await this.client.chat.completions.create(
-        requestOptions
-      );
+      const response =
+        await this.client.chat.completions.create(requestOptions);
       const response_content = response.choices[0]?.message?.content;
       return response_content ? response_content.trim() : null;
     } catch (e: any) {
       if (e instanceof APIError) {
         console.error(
-          `API Error: ${e.status} ${e.message} (Code: ${e.code}, Type: ${e.type})`
+          `[LLMAPIMANAGER] API Error: ${e.status} ${e.message} (Code: ${e.code}, Type: ${e.type})`,
         );
       } else if (e instanceof APIConnectionError) {
-        console.error(`API Connection Error: ${e.message}`);
+        console.error(`[LLMAPIMANAGER] API Connection Error: ${e.message}`);
       } else if (e instanceof RateLimitError) {
         console.error(`Rate Limit Error: ${e.message}`);
       } else {
-        console.error(`Unexpected error in sendGenPrompt: ${e.message || e}`);
+        console.error(
+          `[LLMAPIMANAGER] Unexpected error in sendGenPrompt: ${e.message || e}`,
+        );
       }
       return null;
     }

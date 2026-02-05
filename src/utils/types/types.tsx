@@ -41,6 +41,13 @@ export type Settings = {
   activeGDPRFields: string[];
 };
 
+export const defaultSettings: Settings = {
+  useCache: true,
+  llms: [],
+  activeLLM: "",
+  activeGDPRFields: Object.keys(GDPR_EXAMPLES),
+};
+
 export const testResponse: PolicyResponse = {
   full_text: "Test full length text",
   summary: "Test summary",
