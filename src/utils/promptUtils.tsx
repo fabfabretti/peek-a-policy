@@ -1,3 +1,9 @@
+/**
+ * utils/promptUils.tsx
+ *
+ * This file contains all functions that relate to building prompts (atm summarization and indicators)
+ */
+
 import { Settings } from "./types/types";
 
 export const GDPR_EXAMPLES: Record<string, string> = {
@@ -41,9 +47,10 @@ export function generateExampleSummary(fields: string[]): string {
 }`;
 }
 
+// Build the prompt
 export function generateGDPRPrompt(
   document: string,
-  settings: Settings
+  settings: Settings, // This is needed, as the user saves into settings what indicators they're interested in
 ): string {
   const activeFields = settings.activeGDPRFields ?? GDPR_FIELDS;
   const bulletPoints = activeFields.map((field) => `- ${field}`).join("\n");

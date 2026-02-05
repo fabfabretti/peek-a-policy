@@ -1,3 +1,9 @@
+/**
+ * utils/readabilityUtils.tsx
+ *
+ * This function contains functions to compute Flesh Kincaid score.
+ */
+
 import { syllable } from "syllable";
 
 export type ReadabilityInfo = {

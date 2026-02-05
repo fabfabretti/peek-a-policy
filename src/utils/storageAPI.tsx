@@ -1,4 +1,10 @@
-// storage.tsx
+/**
+ *  utils/storageAPI.tsx
+ *
+ * This file handles all interactions with the storage.
+ *
+ */
+
 import { storage } from "wxt/utils/storage";
 import { browser } from "wxt/browser";
 
@@ -55,7 +61,7 @@ const storageAPI = {
       const all = await browser.storage.local.get(null);
       const keys = Object.keys(all);
       const toDelete = keys.filter(
-        (key) => key.startsWith("local:") && key !== "local:settings"
+        (key) => key.startsWith("local:") && key !== "local:settings",
       );
 
       for (const key of toDelete) {

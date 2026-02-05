@@ -1,3 +1,9 @@
+/**
+ * utils/PolicyRequestManager.tsx
+ *
+ * Singleton that's used to orchestrate all the policy alnalysis operations.
+ */
+
 import { browser } from "wxt/browser";
 import storageAPI from "@/utils/storageAPI";
 import { Settings, PolicyResponse, LLMConfig } from "@/utils/types/types";
@@ -16,6 +22,7 @@ class PolicyRequestManager {
 
   private constructor() {}
 
+  // Get the singleton's instance
   static async getInstance(): Promise<PolicyRequestManager> {
     if (!PolicyRequestManager.instance) {
       PolicyRequestManager.instance = new PolicyRequestManager();
@@ -24,6 +31,7 @@ class PolicyRequestManager {
     return PolicyRequestManager.instance;
   }
 
+  // internal constructor
   private async init() {
     console.log("[PRM] Loading settings...");
 
@@ -48,7 +56,7 @@ class PolicyRequestManager {
     try {
       this.client = LLMApiManager.getInstance(
         this.llm.endpoint,
-        this.llm.apiKey
+        this.llm.apiKey,
       );
       console.log("[PRM] LLM client initialized.");
     } catch (e) {
@@ -57,38 +65,56 @@ class PolicyRequestManager {
     }
   }
 
+  // Main method to analyse the policy. Receives the raw policy.
+
   async analysePolicy(policyText: string): Promise<PolicyResponse | null> {
+    // Initializer.
     await this.init();
     if (!this.client || !this.settings || !this.llm) {
       console.error("[PRM] Cannot analyse: missing client or settings.");
       return null;
     }
 
+    // Start analysis!
+
     try {
+      // Delegate prompt generation to other utility
       const prompt = generateGDPRPrompt(policyText, this.settings);
 
-      const raw = await this.client.sendGenPrompt(prompt, "", this.llm.model);
-      if (!raw) return null;
+      // Send to LLM
+      const raw_response = await this.client.sendGenPrompt(
+        prompt,
+        "",
+        this.llm.model,
+      );
+      if (!raw_response) {
+        console.error(
+          "[PRM] Something went wrong when sending the prompt to the LLM.",
+        );
+        return null;
+      }
 
-      console.log(raw);
+      // Parse response as JSON
+      const parsed: PolicyResponse = JSON.parse(raw_response);
 
-      const parsed: PolicyResponse = JSON.parse(raw);
-
+      // Build anaysis object
       parsed.full_text = policyText;
-      parsed.maxScore = parsed.maxScore ?? 100;
+      parsed.maxScore = parsed.maxScore ?? 100; // If no maxScore is present, revert to 100
       parsed.indicators =
         parsed.indicators?.map((ind) => ({
           ...ind,
-          maxScore: ind.maxScore ?? 5,
+          maxScore: ind.maxScore ?? 5, // If no maxScore is present, revert to 5
         })) ?? [];
       parsed.analysed_at = new Date().toISOString();
       parsed.model_used = this.llm.name;
 
+      // Compute and add to analysis flesh-kincaid score
       parsed.readability = {
         fullText: computeReadabilityInfo(policyText),
         summary: computeReadabilityInfo(parsed.summary || ""),
       };
 
+      // Find and add to analysis the site's name
       try {
         const tabs = await browser.tabs.query({
           active: true,
@@ -99,8 +125,8 @@ class PolicyRequestManager {
       } catch (e) {
         console.warn("[PRM] Failed to extract domain:", e);
       }
-      console.log(parsed);
 
+      // We're done!
       return parsed;
     } catch (e) {
       console.error("[PRM] Error during analysis:", e);
@@ -108,8 +134,9 @@ class PolicyRequestManager {
     }
   }
 
+  // This function takes an analysis and adds the iindicators to it.
   async enrichWithIndicators(
-    response: PolicyResponse
+    response: PolicyResponse,
   ): Promise<PolicyResponse> {
     if (!this.client || !this.settings || !this.llm) {
       console.error("[PRM] Cannot enrich: missing client or settings.");
@@ -124,13 +151,14 @@ class PolicyRequestManager {
     const prompt = generateIndicatorsPrompt(response.summary);
 
     try {
+      // Send summary to LLM to get indicators
       const raw = await this.client.sendGenPrompt(prompt, "", this.llm.model);
       const parsed = JSON.parse(raw || "");
 
       if (parsed.error) {
         console.warn(
           "[PRM] LLM returned error during indicator generation:",
-          parsed.error
+          parsed.error,
         );
         return {
           ...response,
