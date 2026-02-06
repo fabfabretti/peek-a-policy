@@ -140,7 +140,9 @@ function HomePage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="font-semibold">No LLM configured</div>
-              <div className="text-sm text-red-700">Please set an LLM in the Settings page to enable analysis.</div>
+              <div className="text-sm text-red-700">
+                Please set an LLM in the Settings page to enable analysis.
+              </div>
             </div>
             <div>
               <Button
