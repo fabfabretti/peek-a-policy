@@ -1,0 +1,13 @@
+/* Options-specific overrides to cancel popup fixed sizing */
+body {
+  width: auto !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+}
+
+/* Ensure root uses full height */
+#root {
+  min-height: 100vh;
+}

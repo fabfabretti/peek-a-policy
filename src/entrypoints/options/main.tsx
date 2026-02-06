@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 
 import "../popup/style.css";
+import "./style.css";
 import { HeroUIProvider } from "@heroui/system";
 import { HashRouter, Route, Routes, Navigate } from "react-router";
 
