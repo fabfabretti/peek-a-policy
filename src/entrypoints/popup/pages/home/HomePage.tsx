@@ -62,7 +62,7 @@ function HomePage() {
 
       if (!result) {
         setErrorMsg(
-          "Coudln't connect to the LLM.\n Please double check your LLM endpoint and key."
+          "Coudln't connect to the LLM.\n Please double check your LLM endpoint and key.",
         );
         return;
       }
@@ -126,7 +126,7 @@ function HomePage() {
           color="primary"
           variant="ghost"
           className="px-2 py-1"
-          onPress={() => navigate("/settings")}
+          onPress={() => browser.runtime.openOptionsPage()}
         >
           ⚙️
         </Button>
