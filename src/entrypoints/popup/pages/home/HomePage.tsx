@@ -16,6 +16,7 @@ function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [domainHasCache, setDomainHasCache] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [hasLLM, setHasLLM] = useState<boolean>(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const noRedirect = searchParams.get("noRedirect");
@@ -24,6 +25,7 @@ function HomePage() {
   useEffect(() => {
     const checkCache = async () => {
       const settings = await storageAPI.get<Settings>("settings");
+      setHasLLM(!!(settings && settings.llms && settings.llms.length > 0));
       if (!settings?.useCache) return;
 
       const tabs = await browser.tabs.query({
@@ -131,6 +133,29 @@ function HomePage() {
           ⚙️
         </Button>
       </div>
+
+      {/* WARNING: no LLM configured */}
+      {!hasLLM && (
+        <div className="w-full max-w-md border border-red-300 bg-red-50 rounded-md p-3 text-sm text-red-800">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="font-semibold">No LLM configured</div>
+              <div className="text-sm text-red-700">Please set an LLM in the Settings page to enable analysis.</div>
+            </div>
+            <div>
+              <Button
+                size="sm"
+                variant="ghost"
+                color="secondary"
+                onPress={() => browser.runtime.openOptionsPage()}
+                className="border border-red-200 text-red-700 hover:bg-red-100"
+              >
+                Open Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="subtitle text-base text-gray-800 text-center">
         Paste the policy you'd like to analyse here.
