@@ -10,7 +10,7 @@ export default defineBackground(() => {
   // Listener for content script requests to fetch cross-origin pages
   onMessage("FETCH_URL", async (message) => {
     const { data } = message;
-    const url = data?.url;
+    const url = (data as any)?.url;
     console.log("[Background] FETCH_URL requested:", url);
     if (!url) return { ok: false, error: "no_url" };
 
@@ -29,7 +29,7 @@ export default defineBackground(() => {
   // and returns the extracted text. This avoids CORS by reading the page DOM.
   onMessage("FETCH_VIA_TAB", async (message) => {
     const { data } = message;
-    const url = data?.url;
+    const url = (data as any)?.url;
     console.log("[Background] FETCH_VIA_TAB requested:", url);
     if (!url) return { ok: false, error: "no_url" };
 
