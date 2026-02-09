@@ -23,7 +23,9 @@ function HomePage() {
   const [domainHasCache, setDomainHasCache] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [hasLLM, setHasLLM] = useState<boolean>(false);
-  const [retrievalStatus, setRetrievalStatus] = useState<"loading" | "success" | "error" | null>(null);
+  const [retrievalStatus, setRetrievalStatus] = useState<
+    "loading" | "success" | "error" | null
+  >(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const noRedirect = searchParams.get("noRedirect");
@@ -151,8 +153,6 @@ function HomePage() {
     }
   };
 
-
-
   return (
     <div className="relative w-[480px] p-4 flex flex-col items-center gap-4">
       {/* Title row */}
@@ -240,7 +240,8 @@ function HomePage() {
         <div className="w-full text-sm text-gray-500 animate-pulse mt-2 mb-2 text-center">
           {retrievalStatus === "loading" && "Retrieving policy..."}
           {retrievalStatus === "success" && "Policy retrieved!"}
-          {retrievalStatus === "error" && "Couldn't retrieve policy, please paste it manually"}
+          {retrievalStatus === "error" &&
+            "Couldn't retrieve policy, please paste it manually"}
         </div>
       )}
 

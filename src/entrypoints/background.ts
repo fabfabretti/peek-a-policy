@@ -1,4 +1,6 @@
 import { onMessage } from "webext-bridge/background";
+import { browser } from "wxt/browser";
+import type { Tabs } from "webextension-polyfill";
 
 export default defineBackground(() => {
   console.log("Hello background!", { id: browser.runtime.id });
@@ -48,7 +50,7 @@ export default defineBackground(() => {
           reject(new Error("tab_load_timeout"));
         }, 15000);
 
-        const listener = (updatedTabId, changeInfo) => {
+        const listener = (updatedTabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType) => {
           if (updatedTabId === tabId && changeInfo.status === "complete") {
             clearTimeout(timeout);
             browser.tabs.onUpdated.removeListener(listener as any);

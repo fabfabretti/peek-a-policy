@@ -110,8 +110,8 @@ async function extractPrivacyPolicy(): Promise<string> {
             "background",
           );
 
-          if (bgResp?.ok && bgResp.text) {
-            mainContent = bgResp.text;
+          if ((bgResp as any)?.ok && (bgResp as any)?.text) {
+            mainContent = (bgResp as any).text;
             console.log(
               "[Content] Successfully extracted policy via background tab",
             );
@@ -119,7 +119,7 @@ async function extractPrivacyPolicy(): Promise<string> {
           } else {
             console.warn(
               "[Content] Background tab fetch failed:",
-              bgResp?.error || bgResp,
+              (bgResp as any)?.error || bgResp,
             );
           }
         } catch (e) {
