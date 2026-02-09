@@ -23,10 +23,10 @@ function HomePage() {
   const [domainHasCache, setDomainHasCache] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [hasLLM, setHasLLM] = useState<boolean>(false);
+  const [retrievalStatus, setRetrievalStatus] = useState<"loading" | "success" | "error" | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const noRedirect = searchParams.get("noRedirect");
-  const [autoRetrieveLoading, setAutoRetrieveLoading] = useState(false);
 
   useEffect(() => {
     const checkCache = async () => {
@@ -63,15 +63,20 @@ function HomePage() {
   useEffect(() => {
     (async () => {
       try {
+        setRetrievalStatus("loading");
+
         const [tab] = await browser.tabs.query({
           active: true,
           currentWindow: true,
         });
         const tabId = tab?.id;
 
-        // DEBUG: verify tabId and destination
         console.log("[Popup] tabId =", tabId);
-        if (!tabId) return;
+        if (!tabId) {
+          setRetrievalStatus("error");
+          setTimeout(() => setRetrievalStatus(null), 3000);
+          return;
+        }
 
         const destination = `content-script@${tabId}`;
         console.log("[Popup] sending GET_PAGE_TEXT to", destination);
@@ -80,18 +85,20 @@ function HomePage() {
 
         console.log("[Popup] received:", res);
 
-        if (res?.text) {
+        if (res?.text && res.text !== "not found" && res.text !== "error") {
           console.log("[Popup] Setting policy text, length:", res.text.length);
           setFullPolicyText(res.text);
+          setRetrievalStatus("success");
+          setTimeout(() => setRetrievalStatus(null), 2000);
         } else {
-          console.warn("[Popup] No text in response");
+          console.warn("[Popup] No valid text in response");
+          setRetrievalStatus("error");
+          setTimeout(() => setRetrievalStatus(null), 3000);
         }
       } catch (e) {
         console.error("[Popup] GET_PAGE_TEXT failed", e);
-        console.error(
-          "[Popup] Error details:",
-          e instanceof Error ? e.message : String(e),
-        );
+        setRetrievalStatus("error");
+        setTimeout(() => setRetrievalStatus(null), 3000);
       }
     })();
   }, []);
@@ -144,22 +151,7 @@ function HomePage() {
     }
   };
 
-  const handleAutoRetrieve = async () => {
-    setAutoRetrieveLoading(true);
-    try {
-      const content = await storageAPI.get<string>("currentpagecontent");
-      if (content === "not found") {
-        setErrorMsg("Could not retrieve policy. Please paste it manually.");
-        setFullPolicyText("");
-        setIsInvalid(true);
-      } else if (content) {
-        setFullPolicyText(content);
-        setIsInvalid(false);
-      }
-    } finally {
-      setAutoRetrieveLoading(false);
-    }
-  };
+
 
   return (
     <div className="relative w-[480px] p-4 flex flex-col items-center gap-4">
@@ -243,42 +235,31 @@ function HomePage() {
         }}
       />
 
-      {/* Analyse and Auto-retrieve buttons or loading message */}
+      {/* Retrieval status message */}
+      {retrievalStatus && (
+        <div className="w-full text-sm text-gray-500 animate-pulse mt-2 mb-2 text-center">
+          {retrievalStatus === "loading" && "Retrieving policy..."}
+          {retrievalStatus === "success" && "Policy retrieved!"}
+          {retrievalStatus === "error" && "Couldn't retrieve policy, please paste it manually"}
+        </div>
+      )}
+
+      {/* Analyse button or loading message */}
       {isLoading ? (
         <div className="text-sm text-gray-500 animate-pulse mt-2 mb-2 w-full text-center">
           Analysing policy...
         </div>
       ) : (
-        <div className="w-full flex flex-row justify-center items-start gap-2 mb-2">
-          <div className="flex flex-col items-center">
-            <span>
-              <Button
-                size="sm"
-                color="primary"
-                variant="ghost"
-                className="min-w-[120px] text-sm px-3 py-1"
-                onPress={handleAutoRetrieve}
-                isLoading={autoRetrieveLoading}
-                disabled={autoRetrieveLoading}
-              >
-                🔄 Auto-retrieve
-              </Button>
-            </span>
-            <span className="text-[10px] text-gray-400 mt-0.5">
-              experimental
-            </span>
-          </div>
-          <Button
-            size="sm"
-            color="primary"
-            variant="solid"
-            className="min-w-[120px] text-sm px-3 py-1"
-            onPress={analysePolicy}
-            disabled={isLoading}
-          >
-            Start Analysis
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          color="primary"
+          variant="solid"
+          className="min-w-[120px] text-sm px-3 py-1"
+          onPress={analysePolicy}
+          disabled={isLoading || !fullPolicyText.trim()}
+        >
+          Start Analysis
+        </Button>
       )}
     </div>
   );
