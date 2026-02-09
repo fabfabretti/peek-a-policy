@@ -76,7 +76,7 @@ function HomePage() {
         const destination = `content-script@${tabId}`;
         console.log("[Popup] sending GET_PAGE_TEXT to", destination);
 
-        const res = await sendMessage("GET_PAGE_TEXT", {}, destination);
+        const res = await sendMessage("GET_PAGE_TEXT", undefined, destination);
 
         console.log("[Popup] received:", res);
 
