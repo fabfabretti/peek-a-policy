@@ -50,7 +50,10 @@ export default defineBackground(() => {
           reject(new Error("tab_load_timeout"));
         }, 15000);
 
-        const listener = (updatedTabId: number, changeInfo: Tabs.OnUpdatedChangeInfoType) => {
+        const listener = (
+          updatedTabId: number,
+          changeInfo: Tabs.OnUpdatedChangeInfoType,
+        ) => {
           if (updatedTabId === tabId && changeInfo.status === "complete") {
             clearTimeout(timeout);
             browser.tabs.onUpdated.removeListener(listener as any);
