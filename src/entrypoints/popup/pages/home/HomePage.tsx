@@ -1,3 +1,7 @@
+/**
+ * src/popup/pages/home/HomePage.tsx
+ */
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@heroui/button";
@@ -9,6 +13,8 @@ import { browser } from "wxt/browser";
 import PolicyRequestManager from "@/utils/PolicyRequestManager";
 import storageAPI from "@/utils/storageAPI";
 import { PolicyResponse, Settings } from "@/utils/types/types";
+
+import { sendMessage } from "webext-bridge/popup";
 
 function HomePage() {
   const [fullPolicyText, setFullPolicyText] = useState("");
@@ -45,6 +51,49 @@ function HomePage() {
     };
 
     checkCache();
+  }, []);
+
+  useEffect(() => {
+    const checkCache = async () => {
+      // ... tuo codice
+    };
+    checkCache();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [tab] = await browser.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        const tabId = tab?.id;
+
+        // DEBUG: verify tabId and destination
+        console.log("[Popup] tabId =", tabId);
+        if (!tabId) return;
+
+        const destination = `content-script@${tabId}`;
+        console.log("[Popup] sending GET_PAGE_TEXT to", destination);
+
+        const res = await sendMessage("GET_PAGE_TEXT", {}, destination);
+
+        console.log("[Popup] received:", res);
+
+        if (res?.text) {
+          console.log("[Popup] Setting policy text, length:", res.text.length);
+          setFullPolicyText(res.text);
+        } else {
+          console.warn("[Popup] No text in response");
+        }
+      } catch (e) {
+        console.error("[Popup] GET_PAGE_TEXT failed", e);
+        console.error(
+          "[Popup] Error details:",
+          e instanceof Error ? e.message : String(e),
+        );
+      }
+    })();
   }, []);
 
   const analysePolicy = async () => {

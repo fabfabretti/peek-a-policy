@@ -8,10 +8,19 @@
 
 import storageAPI from "../utils/storageAPI";
 import { Readability } from "@mozilla/readability";
+import { onMessage } from "webext-bridge/content-script";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
   async main() {
+    onMessage("GET_PAGE_TEXT", (message) => {
+      console.log("[Content] GET_PAGE_TEXT received");
+      console.log("[Content] Message from:", message.sender);
+      const text = document.body?.innerText ?? "";
+      console.log("[Content] Returning text of length:", text.length);
+      return { text };
+    });
+
     // Wait for document to fully load
     if (document.readyState !== "complete") {
       await new Promise((resolve) => {
