@@ -23,7 +23,7 @@ export default defineBackground(() => {
       return { ok: false, error: String(e) };
     }
   });
-  
+
   // Listener that opens a hidden/inactive tab, asks its content script to extract
   // the page content (using the same GET_PAGE_TEXT handler), then closes the tab
   // and returns the extracted text. This avoids CORS by reading the page DOM.
@@ -62,11 +62,9 @@ export default defineBackground(() => {
       // Ask the content script in that tab to extract the policy
       try {
         const destination = `content-script@${tabId}`;
-        const res = await (await import("webext-bridge/background")).sendMessage(
-          "GET_PAGE_TEXT",
-          undefined,
-          destination,
-        );
+        const res = await (
+          await import("webext-bridge/background")
+        ).sendMessage("GET_PAGE_TEXT", undefined, destination);
 
         // Close the tab
         browser.tabs.remove(tabId).catch(() => {});

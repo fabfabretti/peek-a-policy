@@ -100,7 +100,9 @@ async function extractPrivacyPolicy(): Promise<string> {
           console.log("[Content] Fetched content was too short, falling back.");
         }
       } else {
-        console.log("[Content] Privacy link is cross-origin, requesting background to open tab and extract.");
+        console.log(
+          "[Content] Privacy link is cross-origin, requesting background to open tab and extract.",
+        );
         try {
           const bgResp = await sendMessage(
             "FETCH_VIA_TAB",
