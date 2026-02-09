@@ -8,7 +8,7 @@
 
 import storageAPI from "../utils/storageAPI";
 import { Readability } from "@mozilla/readability";
-import { onMessage } from "webext-bridge/content-script";
+import { onMessage, sendMessage } from "webext-bridge/content-script";
 
 // Helper to clean up newlines and trim
 function cleanText(text: string) {
@@ -100,7 +100,29 @@ async function extractPrivacyPolicy(): Promise<string> {
           console.log("[Content] Fetched content was too short, falling back.");
         }
       } else {
-        console.log("[Content] Privacy link is cross-origin, falling back.");
+        console.log("[Content] Privacy link is cross-origin, requesting background to open tab and extract.");
+        try {
+          const bgResp = await sendMessage(
+            "FETCH_VIA_TAB",
+            { url: privacyLink.href },
+            "background",
+          );
+
+          if (bgResp?.ok && bgResp.text) {
+            mainContent = bgResp.text;
+            console.log(
+              "[Content] Successfully extracted policy via background tab",
+            );
+            return mainContent;
+          } else {
+            console.warn(
+              "[Content] Background tab fetch failed:",
+              bgResp?.error || bgResp,
+            );
+          }
+        } catch (e) {
+          console.error("[Content] Background tab error:", e);
+        }
       }
     } catch (e) {
       console.error("[Content] Failed to fetch privacy policy page:", e);
