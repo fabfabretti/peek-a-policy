@@ -2,8 +2,7 @@
  * The content script retrieves the page's content and saves it to a location
  * inside the local storage, so that the popup script can read it and start the
  * analysis.
- * TODO: leverage the messaging system from WXT instead of using the local
- * storage.
+ * 
  */
 
 import storageAPI from "../utils/storageAPI";
@@ -58,10 +57,20 @@ function isPPLink(a: HTMLAnchorElement) {
 
 // Main function to extract privacy policy from the current page
 async function extractPrivacyPolicy(): Promise<string> {
-  let privacyLink = null;
-  let mainContent = "";
+  // 1. Check current page first using Readability
+  const clonedDoc = document.implementation.createHTMLDocument();
+  clonedDoc.documentElement.innerHTML = document.documentElement.innerHTML;
+  const { text } = extractWithReadability(clonedDoc);
 
-  // 1. Try to search in the footer first
+  if (text.length > 200 && /privacy|policy/i.test(text)) {
+    console.log("[Content] Extracted policy from current page");
+    return text;
+  }
+
+  // 2. If current page is not a PP, search for privacy policy link
+  let privacyLink = null;
+
+  // 2a. Try to search in the footer first
   const footers = Array.from(document.getElementsByTagName("footer"));
   for (const footer of footers) {
     const links = Array.from(footer.getElementsByTagName("a"));
@@ -69,13 +78,13 @@ async function extractPrivacyPolicy(): Promise<string> {
     if (privacyLink) break;
   }
 
-  // 2. If not found in footer, search whole document
+  // 2b. If not found in footer, search whole document
   if (!privacyLink) {
     const links = Array.from(document.getElementsByTagName("a"));
     privacyLink = links.find(isPPLink) || null;
   }
 
-  // 3a. If found a link, try to extract the policy
+  // 3. If found a link, try to extract the policy
   if (privacyLink && privacyLink.href) {
     console.log("[Content] Found privacy policy link:", privacyLink.href);
     try {
@@ -88,14 +97,13 @@ async function extractPrivacyPolicy(): Promise<string> {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
 
-        const { text } = extractWithReadability(doc);
-        mainContent = text;
+        const { text: linkedText } = extractWithReadability(doc);
 
-        if (mainContent.length > 200 && /privacy|policy/i.test(mainContent)) {
+        if (linkedText.length > 200 && /privacy|policy/i.test(linkedText)) {
           console.log(
             "[Content] Successfully extracted policy from linked page",
           );
-          return mainContent;
+          return linkedText;
         } else {
           console.log("[Content] Fetched content was too short, falling back.");
         }
@@ -103,6 +111,7 @@ async function extractPrivacyPolicy(): Promise<string> {
         console.log(
           "[Content] Privacy link is cross-origin, requesting background to open tab and extract.",
         );
+        // If a policy is found but is cross-origin, access it through BG script...
         try {
           const bgResp = await sendMessage(
             "FETCH_VIA_TAB",
@@ -111,11 +120,11 @@ async function extractPrivacyPolicy(): Promise<string> {
           );
 
           if ((bgResp as any)?.ok && (bgResp as any)?.text) {
-            mainContent = (bgResp as any).text;
+            const bgText = (bgResp as any).text;
             console.log(
               "[Content] Successfully extracted policy via background tab",
             );
-            return mainContent;
+            return bgText;
           } else {
             console.warn(
               "[Content] Background tab fetch failed:",
@@ -129,25 +138,11 @@ async function extractPrivacyPolicy(): Promise<string> {
     } catch (e) {
       console.error("[Content] Failed to fetch privacy policy page:", e);
     }
-  } else {
-    console.log(
-      "[Content] No privacy policy link found, falling back to current page.",
-    );
   }
 
-  // 3b. Fallback: use Readability on current page
-  const clonedDoc = document.implementation.createHTMLDocument();
-  clonedDoc.documentElement.innerHTML = document.documentElement.innerHTML;
-  const { text } = extractWithReadability(clonedDoc);
-  mainContent = text;
-
-  if (mainContent.length > 200 && /privacy|policy/i.test(mainContent)) {
-    console.log("[Content] Extracted policy from current page");
-    return mainContent;
-  } else {
-    console.log("[Content] No meaningful privacy content found.");
-    return "not found";
-  }
+  // 4. No meaningful privacy content found
+  console.log("[Content] No meaningful privacy content found.");
+  return "not found";
 }
 
 export default defineContentScript({
