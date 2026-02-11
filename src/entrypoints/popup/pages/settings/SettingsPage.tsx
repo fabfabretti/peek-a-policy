@@ -1,3 +1,7 @@
+/**
+ * TODO: remove this file (I've moved settings to an options page instead)
+ */
+
 import React, { useEffect, useState, ChangeEvent } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@heroui/button";
@@ -134,11 +138,11 @@ const SettingsPage: React.FC = () => {
                   color="secondary"
                   onPress={() => {
                     const filtered = settings.llms.filter(
-                      (l) => l.id !== llm.id
+                      (l) => l.id !== llm.id,
                     );
                     const active =
                       settings.activeLLM === llm.id
-                        ? filtered[0]?.id ?? ""
+                        ? (filtered[0]?.id ?? "")
                         : settings.activeLLM;
                     updateAndSave({
                       ...settings,

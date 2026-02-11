@@ -2,7 +2,7 @@
  * The content script retrieves the page's content and saves it to a location
  * inside the local storage, so that the popup script can read it and start the
  * analysis.
- * 
+ *
  */
 
 import storageAPI from "../utils/storageAPI";

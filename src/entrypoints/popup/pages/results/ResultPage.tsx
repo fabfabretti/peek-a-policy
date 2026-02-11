@@ -5,6 +5,7 @@ import { Accordion, AccordionItem } from "@heroui/accordion";
 import { Card } from "@heroui/card";
 import { Tooltip } from "@heroui/tooltip";
 import ScoreBadge from "../../components/ScoreBadge";
+import ScoreBar from "../../components/ScoreBar";
 import storageAPI from "@/utils/storageAPI";
 import { PolicyResponse, Settings, Indicator } from "@/utils/types/types";
 import { browser } from "wxt/browser";
@@ -121,6 +122,18 @@ const ResultPage: React.FC = () => {
         )}
       </div>
 
+      {policy && indicators && indicators.length > 0 && (
+        <div className="w-full px-6 pt-2 pb-0">
+          <ScoreBar policyResponse={policy} />
+        </div>
+      )}
+
+      {loadingIndicators && (
+        <div className="text-sm text-gray-500 animate-pulse">
+          Generating indicators...
+        </div>
+      )}
+
       <Card className="w-full p-3 bg-white shadow-sm">
         <h2 className="text-sm font-semibold mb-1">Policy Summary</h2>
         <div
@@ -130,7 +143,7 @@ const ResultPage: React.FC = () => {
       </Card>
 
       {loadingIndicators && (
-        <div className="text-sm text-gray-500 animate-pulse mt-2">
+        <div className="text-sm text-gray-500 animate-pulse">
           Generating indicators...
         </div>
       )}
