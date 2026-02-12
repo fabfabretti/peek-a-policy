@@ -18,7 +18,7 @@ const getRiskLabel = (score: number) => {
 };
 
 const computeOverallScore = (
-  indicators: PolicyResponse["indicators"] | undefined
+  indicators: PolicyResponse["indicators"] | undefined,
 ): number => {
   if (!indicators || indicators.length === 0) return 0;
   let sum = 0;
@@ -33,7 +33,10 @@ const computeOverallScore = (
 export default function ScoreBar({ policyResponse }: Props) {
   const indicators = policyResponse?.indicators ?? [];
   const scoreFromIndicators = computeOverallScore(indicators);
-  const score = typeof policyResponse.score === "number" ? policyResponse.score : scoreFromIndicators;
+  const score =
+    typeof policyResponse.score === "number"
+      ? policyResponse.score
+      : scoreFromIndicators;
   const color = getColor(score);
   const risk = getRiskLabel(score);
 
@@ -59,7 +62,10 @@ export default function ScoreBar({ policyResponse }: Props) {
   }, [score, color]);
 
   return (
-    <div className="pap-overall" aria-label={`Overall score ${score}%, ${risk}`}>
+    <div
+      className="pap-overall"
+      aria-label={`Overall score ${score}%, ${risk}`}
+    >
       <div
         className="pap-track"
         style={{

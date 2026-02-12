@@ -87,4 +87,21 @@ export default defineBackground(() => {
       return { ok: false, error: String(e) };
     }
   });
+  // Handler for content script to get analysis result for a domain
+  onMessage("GET_ANALYSIS_RESULT", async (message) => {
+    const { data } = message;
+    const domain = (data as any)?.domain;
+    if (!domain) return { result: null };
+    try {
+      const all = await browser.storage.local.get(null);
+      console.log(`[Background] All storage keys:`, Object.keys(all));
+      console.log(`[Background] Value for ${domain}:`, all[domain]);
+      const value = await browser.storage.local.get(domain);
+      const result = value[domain] ?? null;
+      return { result };
+    } catch (e) {
+      console.error("[Background] Error fetching analysis result for domain:", domain, e);
+      return { result: null };
+    }
+  });
 });

@@ -167,7 +167,7 @@ const ResultPage: React.FC = () => {
                         className="min-w-3 min-h-3 w-3 h-3 rounded-full shrink-0"
                         style={{
                           backgroundColor: getColor(
-                            (ind.score / ind.maxScore) * 100
+                            (ind.score / ind.maxScore) * 100,
                           ),
                         }}
                       />
@@ -197,7 +197,7 @@ const ResultPage: React.FC = () => {
               <AccordionItem
                 key={"readability"}
                 textValue={getReadability5(
-                  policy.readability.fullText.ease
+                  policy.readability.fullText.ease,
                 ).toString()}
                 title={""}
                 startContent={
@@ -207,7 +207,7 @@ const ResultPage: React.FC = () => {
                         className="min-w-3 min-h-3 w-3 h-3 rounded-full shrink-0"
                         style={{
                           backgroundColor: getColor(
-                            policy.readability.fullText.ease
+                            policy.readability.fullText.ease,
                           ),
                         }}
                       />
