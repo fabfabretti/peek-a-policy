@@ -36,15 +36,6 @@ export default defineContentScript({
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // On page load, extract and cache the policy
-    const content = await extractPrivacyPolicy();
-    if (content !== "not found") {
-      await storageAPI.save("currentpagecontent", content);
-      console.log("[Content] Cached policy to storage");
-    } else {
-      await storageAPI.save("currentpagecontent", "not found");
-    }
-
     // Inject analysis summary badge if available
     await injectSummaryBadge();
   },
