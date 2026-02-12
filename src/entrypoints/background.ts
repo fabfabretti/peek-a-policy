@@ -100,7 +100,11 @@ export default defineBackground(() => {
       const result = value[domain] ?? null;
       return { result };
     } catch (e) {
-      console.error("[Background] Error fetching analysis result for domain:", domain, e);
+      console.error(
+        "[Background] Error fetching analysis result for domain:",
+        domain,
+        e,
+      );
       return { result: null };
     }
   });
