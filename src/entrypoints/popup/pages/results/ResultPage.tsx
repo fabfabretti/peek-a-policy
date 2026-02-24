@@ -64,15 +64,16 @@ const ResultPage: React.FC = () => {
       setLoadingIndicators(true);
       const manager = await PolicyRequestManager.getInstance();
       const enriched = await manager.enrichWithIndicators(policy);
-      setIndicators(enriched.indicators ?? []);
-      setLoadingIndicators(false);
+        setIndicators(enriched.indicators ?? []);
+        setPolicy(prev => prev ? { ...prev, indicators: enriched.indicators } : prev);
+        setLoadingIndicators(false);
 
-      if (domain) {
-        await storageAPI.save(domain, {
-          ...policy,
-          indicators: enriched.indicators,
-        });
-      }
+        if (domain) {
+          await storageAPI.save(domain, {
+            ...policy,
+            indicators: enriched.indicators,
+          });
+        }
     };
 
     fetchIndicators();
