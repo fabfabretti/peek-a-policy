@@ -40,7 +40,10 @@ const AddLLMForm: React.FC<{
   const nameError = !newLLM.name ? "Name is required" : undefined;
   const apiKeyError = !newLLM.apiKey ? "API Key is required" : undefined;
   const modelError = !newLLM.model ? "Model is required" : undefined;
-  const endpointError = provider === "other" && !newLLM.endpoint ? "Endpoint is required" : undefined;
+  const endpointError =
+    provider === "other" && !newLLM.endpoint
+      ? "Endpoint is required"
+      : undefined;
   let isValid = false;
   if (provider === "chatgpt") {
     isValid = !!(newLLM.name && newLLM.apiKey && newLLM.model);
@@ -85,7 +88,9 @@ const AddLLMForm: React.FC<{
           >
             <option value="">Select model...</option>
             {CHATGPT_MODELS.map((model) => (
-              <option key={model} value={model}>{model}</option>
+              <option key={model} value={model}>
+                {model}
+              </option>
             ))}
           </select>
           {modelError && (
