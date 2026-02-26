@@ -58,7 +58,8 @@ const AddLLMForm: React.FC<{
   if (provider === "chatgpt" || provider === "gemini") {
     isValid = !!(newLLM.name && newLLM.apiKey && newLLM.model);
     const models = provider === "chatgpt" ? CHATGPT_MODELS : GEMINI_MODELS;
-    const endpoint = provider === "chatgpt" ? CHATGPT_ENDPOINT : GEMINI_ENDPOINT;
+    const endpoint =
+      provider === "chatgpt" ? CHATGPT_ENDPOINT : GEMINI_ENDPOINT;
     return (
       <div className="space-y-2">
         <Input
