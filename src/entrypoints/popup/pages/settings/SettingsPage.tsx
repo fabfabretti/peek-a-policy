@@ -21,6 +21,7 @@ const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [addingLLM, setAddingLLM] = useState(false);
+  const [llmProvider, setLLMProvider] = useState<string>("");
   const [newLLM, setNewLLM] = useState<LLMConfig>({
     id: "",
     name: "",
@@ -28,6 +29,147 @@ const SettingsPage: React.FC = () => {
     apiKey: "",
     model: "",
   });
+  // ChatGPT (OpenAI) models for dropdown
+  const CHATGPT_MODELS = [
+    "gpt-3.5-turbo",
+    "gpt-4",
+    "gpt-4-turbo",
+    "gpt-4o",
+    "gpt-4-32k",
+    "gpt-3.5-turbo-16k",
+  ];
+  const CHATGPT_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+
+  // Submenu component for adding LLM
+  const AddLLMForm: React.FC<{
+    provider: string;
+    newLLM: LLMConfig;
+    setNewLLM: React.Dispatch<React.SetStateAction<LLMConfig>>;
+    onSave: () => void;
+    onCancel: () => void;
+  }> = ({ provider, newLLM, setNewLLM, onSave, onCancel }) => {
+    if (provider === "chatgpt") {
+      return (
+        <div className="space-y-2">
+          <Input
+            label="Name"
+            size="sm"
+            value={newLLM.name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setNewLLM((p) => ({ ...p, name: e.target.value }))
+            }
+          />
+          <Input
+            label="Endpoint"
+            size="sm"
+            value={CHATGPT_ENDPOINT}
+            disabled
+            className="bg-gray-100"
+          />
+          <Input
+            label="API Key"
+            size="sm"
+            type="password"
+            value={newLLM.apiKey}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setNewLLM((p) => ({ ...p, apiKey: e.target.value }))
+            }
+          />
+          <div>
+            <label className="text-sm font-medium text-gray-700">Model</label>
+            <select
+              className="w-full border rounded px-2 py-1"
+              value={newLLM.model}
+              onChange={(e) =>
+                setNewLLM((p) => ({ ...p, model: e.target.value }))
+              }
+            >
+              <option value="">Select model...</option>
+              {CHATGPT_MODELS.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-center gap-2 pt-2">
+            <Button
+              variant="ghost"
+              color="primary"
+              onPress={onSave}
+              className="border border-primary hover:bg-primary hover:text-white"
+            >
+              Save
+            </Button>
+            <Button
+              variant="ghost"
+              color="secondary"
+              onPress={onCancel}
+              className="border border-secondary hover:bg-secondary hover:text-white"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    // Other provider: show all fields editable
+    return (
+      <div className="space-y-2">
+        <Input
+          label="Name"
+          size="sm"
+          value={newLLM.name}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setNewLLM((p) => ({ ...p, name: e.target.value }))
+          }
+        />
+        <Input
+          label="Endpoint"
+          size="sm"
+          value={newLLM.endpoint}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setNewLLM((p) => ({ ...p, endpoint: e.target.value }))
+          }
+        />
+        <Input
+          label="API Key"
+          size="sm"
+          type="password"
+          value={newLLM.apiKey}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setNewLLM((p) => ({ ...p, apiKey: e.target.value }))
+          }
+        />
+        <Input
+          label="Model (e.g. gpt-4o)"
+          size="sm"
+          value={newLLM.model}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setNewLLM((p) => ({ ...p, model: e.target.value }))
+          }
+        />
+        <div className="flex justify-center gap-2 pt-2">
+          <Button
+            variant="ghost"
+            color="primary"
+            onPress={onSave}
+            className="border border-primary hover:bg-primary hover:text-white"
+          >
+            Save
+          </Button>
+          <Button
+            variant="ghost"
+            color="secondary"
+            onPress={onCancel}
+            className="border border-secondary hover:bg-secondary hover:text-white"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  };
   const [cacheSize, setCacheSize] = useState<number>(0);
 
   useEffect(() => {
@@ -164,56 +306,52 @@ const SettingsPage: React.FC = () => {
             <Button
               variant="ghost"
               color="primary"
-              onPress={() => setAddingLLM(true)}
+              onPress={() => {
+                setAddingLLM(true);
+                setLLMProvider("");
+                setNewLLM({
+                  id: "",
+                  name: "",
+                  endpoint: "",
+                  apiKey: "",
+                  model: "",
+                });
+              }}
               className="border border-primary hover:bg-primary hover:text-white"
             >
               + Add LLM
             </Button>
           </div>
         )}
-
         {addingLLM && (
           <div className="space-y-3 pt-4">
             <h4 className="text-md font-semibold text-primary">New LLM</h4>
-            <Input
-              label="Name"
-              size="sm"
-              value={newLLM.name}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewLLM((p) => ({ ...p, name: e.target.value }))
-              }
-            />
-            <Input
-              label="Endpoint"
-              size="sm"
-              value={newLLM.endpoint}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewLLM((p) => ({ ...p, endpoint: e.target.value }))
-              }
-            />
-            <Input
-              label="API Key"
-              size="sm"
-              type="password"
-              value={newLLM.apiKey}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewLLM((p) => ({ ...p, apiKey: e.target.value }))
-              }
-            />
-            <Input
-              label="Model (e.g. gpt-4o)"
-              size="sm"
-              value={newLLM.model}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setNewLLM((p) => ({ ...p, model: e.target.value }))
-              }
-            />
-            <div className="flex justify-center gap-2">
-              <Button
-                variant="ghost"
-                color="primary"
-                onPress={() => {
-                  const entry = { ...newLLM, id: Date.now().toString() };
+            {!llmProvider && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Provider
+                </label>
+                <select
+                  className="w-full border rounded px-2 py-1"
+                  value={llmProvider}
+                  onChange={(e) => setLLMProvider(e.target.value)}
+                >
+                  <option value="">Select provider...</option>
+                  <option value="chatgpt">ChatGPT</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            )}
+            {llmProvider && (
+              <AddLLMForm
+                provider={llmProvider}
+                newLLM={newLLM}
+                setNewLLM={setNewLLM}
+                onSave={() => {
+                  let entry = { ...newLLM, id: Date.now().toString() };
+                  if (llmProvider === "chatgpt") {
+                    entry.endpoint = CHATGPT_ENDPOINT;
+                  }
                   updateAndSave({
                     ...settings,
                     llms: [...settings.llms, entry],
@@ -227,20 +365,14 @@ const SettingsPage: React.FC = () => {
                     model: "",
                   });
                   setAddingLLM(false);
+                  setLLMProvider("");
                 }}
-                className="border border-primary hover:bg-primary hover:text-white"
-              >
-                Save
-              </Button>
-              <Button
-                variant="ghost"
-                color="secondary"
-                onPress={() => setAddingLLM(false)}
-                className="border border-secondary hover:bg-secondary hover:text-white"
-              >
-                Cancel
-              </Button>
-            </div>
+                onCancel={() => {
+                  setAddingLLM(false);
+                  setLLMProvider("");
+                }}
+              />
+            )}
           </div>
         )}
       </div>

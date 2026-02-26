@@ -13,10 +13,181 @@ const DEFAULT_SETTINGS: Settings = {
   activeGDPRFields: Object.keys(GDPR_EXAMPLES),
 };
 
+const CHATGPT_MODELS = [
+  "gpt-5.2",
+  "gpt-5.2-pro",
+  "gpt-5-mini",
+  "gpt-5-nano",
+  "gpt-5.1",
+  "gpt-5",
+  "gpt-4o",
+  "gpt-4o-mini",
+  "gpt-4.1",
+  "gpt-4-turbo",
+  "gpt-4",
+  "gpt-3.5-turbo",
+];
+const CHATGPT_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+
+const AddLLMForm: React.FC<{
+  provider: string;
+  newLLM: LLMConfig;
+  setNewLLM: React.Dispatch<React.SetStateAction<LLMConfig>>;
+  onSave: () => void;
+  onCancel: () => void;
+}> = ({ provider, newLLM, setNewLLM, onSave, onCancel }) => {
+  // Error messages for each field
+  const nameError = !newLLM.name ? "Name is required" : undefined;
+  const apiKeyError = !newLLM.apiKey ? "API Key is required" : undefined;
+  const modelError = !newLLM.model ? "Model is required" : undefined;
+  const endpointError = provider === "other" && !newLLM.endpoint ? "Endpoint is required" : undefined;
+  let isValid = false;
+  if (provider === "chatgpt") {
+    isValid = !!(newLLM.name && newLLM.apiKey && newLLM.model);
+    return (
+      <div className="space-y-2">
+        <Input
+          label="Name"
+          size="sm"
+          value={newLLM.name}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setNewLLM((p) => ({ ...p, name: e.target.value }))
+          }
+          errorMessage={nameError}
+          isInvalid={!!nameError}
+        />
+        <Input
+          label="Endpoint"
+          size="sm"
+          value={CHATGPT_ENDPOINT}
+          disabled
+          className="bg-gray-100"
+        />
+        <Input
+          label="API Key"
+          size="sm"
+          type="password"
+          value={newLLM.apiKey}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setNewLLM((p) => ({ ...p, apiKey: e.target.value }))
+          }
+          errorMessage={apiKeyError}
+          isInvalid={!!apiKeyError}
+        />
+        <div>
+          <label className="text-sm font-medium text-gray-700">Model</label>
+          <select
+            className="w-full border rounded px-2 py-1"
+            value={newLLM.model}
+            onChange={(e) =>
+              setNewLLM((p) => ({ ...p, model: e.target.value }))
+            }
+          >
+            <option value="">Select model...</option>
+            {CHATGPT_MODELS.map((model) => (
+              <option key={model} value={model}>{model}</option>
+            ))}
+          </select>
+          {modelError && (
+            <div className="text-xs text-red-500 mt-1">{modelError}</div>
+          )}
+        </div>
+        <div className="flex justify-center gap-2 pt-2">
+          <Button
+            variant="ghost"
+            color="primary"
+            onPress={onSave}
+            disabled={!isValid}
+            className="border border-primary hover:bg-primary hover:text-white"
+          >
+            Save
+          </Button>
+          <Button
+            variant="ghost"
+            color="secondary"
+            onPress={onCancel}
+            className="border border-secondary hover:bg-secondary hover:text-white"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  // Other provider: show all fields editable
+  isValid = !!(newLLM.name && newLLM.endpoint && newLLM.apiKey && newLLM.model);
+  return (
+    <div className="space-y-2">
+      <Input
+        label="Name"
+        size="sm"
+        value={newLLM.name}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          setNewLLM((p) => ({ ...p, name: e.target.value }))
+        }
+        errorMessage={nameError}
+        isInvalid={!!nameError}
+      />
+      <Input
+        label="Endpoint"
+        size="sm"
+        value={newLLM.endpoint}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          setNewLLM((p) => ({ ...p, endpoint: e.target.value }))
+        }
+        errorMessage={endpointError}
+        isInvalid={!!endpointError}
+      />
+      <Input
+        label="API Key"
+        size="sm"
+        type="password"
+        value={newLLM.apiKey}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          setNewLLM((p) => ({ ...p, apiKey: e.target.value }))
+        }
+        errorMessage={apiKeyError}
+        isInvalid={!!apiKeyError}
+      />
+      <Input
+        label="Model (e.g. gpt-4o)"
+        size="sm"
+        value={newLLM.model}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          setNewLLM((p) => ({ ...p, model: e.target.value }))
+        }
+        errorMessage={modelError}
+        isInvalid={!!modelError}
+      />
+      <div className="flex justify-center gap-2 pt-2">
+        <Button
+          variant="ghost"
+          color="primary"
+          onPress={onSave}
+          disabled={!isValid}
+          className="border border-primary hover:bg-primary hover:text-white"
+        >
+          Save
+        </Button>
+        <Button
+          variant="ghost"
+          color="secondary"
+          onPress={onCancel}
+          className="border border-secondary hover:bg-secondary hover:text-white"
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [addingLLM, setAddingLLM] = useState(false);
+  const [llmProvider, setLLMProvider] = useState<string>("");
+  const [cacheSize, setCacheSize] = useState(0);
   const [newLLM, setNewLLM] = useState<LLMConfig>({
     id: "",
     name: "",
@@ -24,13 +195,9 @@ const SettingsPage: React.FC = () => {
     apiKey: "",
     model: "",
   });
-  const [cacheSize, setCacheSize] = useState<number>(0);
 
   useEffect(() => {
     (async () => {
-      const stored = await storageAPI.get<Settings>("settings");
-      setSettings({ ...DEFAULT_SETTINGS, ...stored });
-
       const bytes = await storageAPI.getPolicyCacheBytes();
       setCacheSize(bytes);
     })();
@@ -165,56 +332,52 @@ const SettingsPage: React.FC = () => {
               <Button
                 variant="ghost"
                 color="primary"
-                onPress={() => setAddingLLM(true)}
+                onPress={() => {
+                  setAddingLLM(true);
+                  setLLMProvider("");
+                  setNewLLM({
+                    id: "",
+                    name: "",
+                    endpoint: "",
+                    apiKey: "",
+                    model: "",
+                  });
+                }}
                 className="border border-primary hover:bg-primary hover:text-white"
               >
                 + Add LLM
               </Button>
             </div>
           )}
-
           {addingLLM && (
             <div className="space-y-3 pt-4">
               <h4 className="text-md font-semibold text-primary">New LLM</h4>
-              <Input
-                label="Name"
-                size="sm"
-                value={newLLM.name}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setNewLLM((p) => ({ ...p, name: e.target.value }))
-                }
-              />
-              <Input
-                label="Endpoint"
-                size="sm"
-                value={newLLM.endpoint}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setNewLLM((p) => ({ ...p, endpoint: e.target.value }))
-                }
-              />
-              <Input
-                label="API Key"
-                size="sm"
-                type="password"
-                value={newLLM.apiKey}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setNewLLM((p) => ({ ...p, apiKey: e.target.value }))
-                }
-              />
-              <Input
-                label="Model (e.g. gpt-4o)"
-                size="sm"
-                value={newLLM.model}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setNewLLM((p) => ({ ...p, model: e.target.value }))
-                }
-              />
-              <div className="flex justify-center gap-2">
-                <Button
-                  variant="ghost"
-                  color="primary"
-                  onPress={() => {
-                    const entry = { ...newLLM, id: Date.now().toString() };
+              {!llmProvider && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Provider
+                  </label>
+                  <select
+                    className="w-full border rounded px-2 py-1"
+                    value={llmProvider}
+                    onChange={(e) => setLLMProvider(e.target.value)}
+                  >
+                    <option value="">Select provider...</option>
+                    <option value="chatgpt">ChatGPT</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              )}
+              {llmProvider && (
+                <AddLLMForm
+                  provider={llmProvider}
+                  newLLM={newLLM}
+                  setNewLLM={setNewLLM}
+                  onSave={() => {
+                    let entry = { ...newLLM, id: Date.now().toString() };
+                    if (llmProvider === "chatgpt") {
+                      entry.endpoint = CHATGPT_ENDPOINT;
+                    }
                     updateAndSave({
                       ...settings,
                       llms: [...settings.llms, entry],
@@ -228,20 +391,14 @@ const SettingsPage: React.FC = () => {
                       model: "",
                     });
                     setAddingLLM(false);
+                    setLLMProvider("");
                   }}
-                  className="border border-primary hover:bg-primary hover:text-white"
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="ghost"
-                  color="secondary"
-                  onPress={() => setAddingLLM(false)}
-                  className="border border-secondary hover:bg-secondary hover:text-white"
-                >
-                  Cancel
-                </Button>
-              </div>
+                  onCancel={() => {
+                    setAddingLLM(false);
+                    setLLMProvider("");
+                  }}
+                />
+              )}
             </div>
           )}
         </div>
