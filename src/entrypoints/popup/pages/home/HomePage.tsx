@@ -16,6 +16,7 @@ import { PolicyResponse, Settings } from "@/utils/types/types";
 
 import { sendMessage } from "webext-bridge/popup";
 
+
 function HomePage() {
   const [fullPolicyText, setFullPolicyText] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
@@ -23,6 +24,7 @@ function HomePage() {
   const [domainHasCache, setDomainHasCache] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [hasLLM, setHasLLM] = useState<boolean>(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
   const [retrievalStatus, setRetrievalStatus] = useState<
     "loading" | "success" | "error" | null
   >(null);
@@ -31,9 +33,24 @@ function HomePage() {
   const noRedirect = searchParams.get("noRedirect");
 
   useEffect(() => {
-    const checkCache = async () => {
+    let retryTimeout: NodeJS.Timeout | null = null;
+    let isMounted = true;
+    const checkCache = async (retryCount = 0) => {
       const settings = await storageAPI.get<Settings>("settings");
-      setHasLLM(!!(settings && settings.llms && settings.llms.length > 0));
+      let llmConfigured = false;
+      if (settings && Array.isArray(settings.llms) && settings.llms.length > 0) {
+        llmConfigured = !!settings.activeLLM && settings.llms.some(l => l.id === settings.activeLLM);
+      }
+      if (!settings || (!llmConfigured && retryCount < 5)) {
+        // Retry up to 5 times with 100ms delay if settings are missing or not yet valid
+        retryTimeout = setTimeout(() => checkCache(retryCount + 1), 100);
+        return;
+      }
+      if (isMounted) {
+        setHasLLM(llmConfigured);
+        setSettingsLoading(false);
+      }
+
       if (!settings?.useCache) return;
 
       const tabs = await browser.tabs.query({
@@ -53,6 +70,10 @@ function HomePage() {
     };
 
     checkCache();
+    return () => {
+      isMounted = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
   }, []);
 
   useEffect(() => {
@@ -176,7 +197,7 @@ function HomePage() {
       </div>
 
       {/* WARNING: no LLM configured */}
-      {!hasLLM && (
+      {!settingsLoading && !hasLLM && (
         <div className="w-full max-w-md border border-red-300 bg-red-50 rounded-md p-3 text-sm text-red-800">
           <div className="flex items-center justify-between gap-4">
             <div>

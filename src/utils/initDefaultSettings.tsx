@@ -14,20 +14,18 @@ import { defaults } from "marked";
 
 export async function initDefaultSettingsIfNeeded() {
   const devMode = import.meta.env.MODE === "development";
-  const existing = await storageAPI.get<Settings>("settings");
+  let settings = await storageAPI.get<Settings>("settings");
 
   // If no settings are found add the default settings to the local storage.
-
-  if (!existing) {
-    // Get defaultSettings from types.tsx!
+  if (!settings) {
     await storageAPI.save("settings", defaultSettings);
     console.log("[INIT] Created initial settings.");
-    return;
+    // Reload settings after saving defaults
+    settings = await storageAPI.get<Settings>("settings");
   }
 
   // If we're in devmode, add the dev's API key from .env
-
-  if (devMode && !existing.llms.some((llm) => llm.id === "dev")) {
+  if (devMode && settings && !settings.llms.some((llm) => llm.id === "dev")) {
     const devLLM: LLMConfig = {
       id: "dev",
       name: "dev test GPT",
@@ -37,13 +35,13 @@ export async function initDefaultSettingsIfNeeded() {
     };
 
     const updated: Settings = {
-      ...existing,
-      llms: [...existing.llms, devLLM],
-      activeLLM: existing.activeLLM || "dev",
+      ...settings,
+      llms: [...settings.llms, devLLM],
+      activeLLM: settings.activeLLM || "dev",
     };
 
     await storageAPI.save("settings", updated);
 
-    console.log("[INIT] Injected devLLM into existing settings.");
+    console.log("[INIT] Injected devLLM into settings.");
   }
 }

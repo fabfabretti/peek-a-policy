@@ -2,7 +2,7 @@
   "name": "peek-a-policy",
   "description": "A browser extension that checks a site's privacy policy and generates simplified information bits for the user.",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
