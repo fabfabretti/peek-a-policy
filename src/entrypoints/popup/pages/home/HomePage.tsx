@@ -16,7 +16,6 @@ import { PolicyResponse, Settings } from "@/utils/types/types";
 
 import { sendMessage } from "webext-bridge/popup";
 
-
 function HomePage() {
   const [fullPolicyText, setFullPolicyText] = useState("");
   const [isInvalid, setIsInvalid] = useState(false);
@@ -38,8 +37,14 @@ function HomePage() {
     const checkCache = async (retryCount = 0) => {
       const settings = await storageAPI.get<Settings>("settings");
       let llmConfigured = false;
-      if (settings && Array.isArray(settings.llms) && settings.llms.length > 0) {
-        llmConfigured = !!settings.activeLLM && settings.llms.some(l => l.id === settings.activeLLM);
+      if (
+        settings &&
+        Array.isArray(settings.llms) &&
+        settings.llms.length > 0
+      ) {
+        llmConfigured =
+          !!settings.activeLLM &&
+          settings.llms.some((l) => l.id === settings.activeLLM);
       }
       if (!settings || (!llmConfigured && retryCount < 5)) {
         // Retry up to 5 times with 100ms delay if settings are missing or not yet valid
