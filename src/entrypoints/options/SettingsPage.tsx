@@ -29,6 +29,16 @@ const CHATGPT_MODELS = [
 ];
 const CHATGPT_ENDPOINT = "https://api.openai.com/v1/chat/completions";
 
+const GEMINI_MODELS = [
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-exp",
+  "gemini-2.0-pro",
+  "gemini-2.0-pro-exp",
+  "gemini-1.5-pro",
+  "gemini-1.5-flash",
+];
+const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/openai/";
+
 const AddLLMForm: React.FC<{
   provider: string;
   newLLM: LLMConfig;
@@ -45,8 +55,10 @@ const AddLLMForm: React.FC<{
       ? "Endpoint is required"
       : undefined;
   let isValid = false;
-  if (provider === "chatgpt") {
+  if (provider === "chatgpt" || provider === "gemini") {
     isValid = !!(newLLM.name && newLLM.apiKey && newLLM.model);
+    const models = provider === "chatgpt" ? CHATGPT_MODELS : GEMINI_MODELS;
+    const endpoint = provider === "chatgpt" ? CHATGPT_ENDPOINT : GEMINI_ENDPOINT;
     return (
       <div className="space-y-2">
         <Input
@@ -62,7 +74,7 @@ const AddLLMForm: React.FC<{
         <Input
           label="Endpoint"
           size="sm"
-          value={CHATGPT_ENDPOINT}
+          value={endpoint}
           disabled
           className="bg-gray-100"
         />
@@ -87,7 +99,7 @@ const AddLLMForm: React.FC<{
             }
           >
             <option value="">Select model...</option>
-            {CHATGPT_MODELS.map((model) => (
+            {models.map((model) => (
               <option key={model} value={model}>
                 {model}
               </option>
@@ -369,6 +381,7 @@ const SettingsPage: React.FC = () => {
                   >
                     <option value="">Select provider...</option>
                     <option value="chatgpt">ChatGPT</option>
+                    <option value="gemini">Gemini</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
@@ -382,6 +395,8 @@ const SettingsPage: React.FC = () => {
                     let entry = { ...newLLM, id: Date.now().toString() };
                     if (llmProvider === "chatgpt") {
                       entry.endpoint = CHATGPT_ENDPOINT;
+                    } else if (llmProvider === "gemini") {
+                      entry.endpoint = GEMINI_ENDPOINT;
                     }
                     updateAndSave({
                       ...settings,
