@@ -93,13 +93,9 @@ function HomePage() {
 
       // Get the current tab's domain
       try {
-        const tabs = await browser.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        const url = tabs?.[0]?.url;
-        if (!url) return;
-        const domain = new URL(url).hostname;
+        const domain = await getCurrentDomain();
+        if (!domain) return;
+
         const analysesForDomain = await storageAPI.getAnalysesForDomain(domain);
         console.log("[HomePage] Found analyses:", analysesForDomain);
 
@@ -127,11 +123,7 @@ function HomePage() {
         setRetrievalStatus("loading");
 
         // Retrieve domain from tab
-        const [tab] = await browser.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        const tabId = tab?.id;
+        const tabId = await getCurrentTabId();
         if (!tabId) {
           setRetrievalStatus("error");
           setTimeout(() => setRetrievalStatus(null), 3000);
@@ -203,12 +195,7 @@ function HomePage() {
       // If we're here, we have results :) Let's save them.
 
       // Find out the current page's domain
-      const tabs = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const url = tabs?.[0]?.url;
-      const domain = url ? new URL(url).hostname : null;
+      const domain = await getCurrentDomain();
       if (!domain) {
         setErrorMsg("Could not determine domain for this page.");
         return;
@@ -291,14 +278,9 @@ function HomePage() {
             className="mt-2 w-full"
             onPress={async () => {
               try {
-                const tabs = await browser.tabs.query({
-                  active: true,
-                  currentWindow: true,
-                });
-                const url = tabs?.[0]?.url;
-                if (!url) return;
+                const domain = await getCurrentDomain();
+                if (!domain) return;
 
-                const domain = new URL(url).hostname;
                 const analysesForDomain =
                   await storageAPI.getAnalysesForDomain(domain);
 
@@ -365,5 +347,36 @@ function HomePage() {
     </div>
   );
 }
+
+// HELPERS
+
+// Helper: Get current tab's domain
+const getCurrentDomain = async (): Promise<string | null> => {
+  try {
+    const tabs = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    const url = tabs?.[0]?.url;
+    return url ? new URL(url).hostname : null;
+  } catch (e) {
+    console.error("[HomePage] Failed to get current domain:", e);
+    return null;
+  }
+};
+
+// Helper: Get current tab's ID
+const getCurrentTabId = async (): Promise<number | null> => {
+  try {
+    const tabs = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    return tabs?.[0]?.id ?? null;
+  } catch (e) {
+    console.error("[HomePage] Failed to get tab ID:", e);
+    return null;
+  }
+};
 
 export default HomePage;
