@@ -52,86 +52,101 @@ function HomePage() {
   // 2. Check if cache saved for this site --> save into state
   useEffect(() => {
     let retryTimeout: NodeJS.Timeout | null = null;
-
     let isMounted = true;
 
-    // 1. Let's get the settings.
+    const initializeHomePage = async (retryCount = 0) => {
+      // Step 1: Check if LLM is configured
 
-    const checkCache = async (retryCount = 0) => {
+      // Get settings
       const settings = await storageAPI.get<Settings>("settings");
+
       let llmConfigured = false;
       if (
+        // if I have settings and there are LLMs set
         settings &&
         Array.isArray(settings.llms) &&
         settings.llms.length > 0
       ) {
+        // update state if there are LLMs and one is active
         llmConfigured =
           !!settings.activeLLM &&
           settings.llms.some((l) => l.id === settings.activeLLM);
       }
+      // Retry if settings haven't loaded yet
       if (!settings || (!llmConfigured && retryCount < 5)) {
-        // Retry up to 5 times with 100ms delay if settings are missing or not yet valid
-        retryTimeout = setTimeout(() => checkCache(retryCount + 1), 100);
+        retryTimeout = setTimeout(
+          () => initializeHomePage(retryCount + 1),
+          100,
+        );
         return;
       }
+
+      // (to avoid editing state if popup has been closed)
       if (isMounted) {
         setHasLLM(llmConfigured);
         setSettingsLoading(false);
       }
 
-      if (!settings?.useCache) return;
+      // Step 2: Check if cache is saved for this site
 
-      const tabs = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const url = tabs?.[0]?.url;
-      if (!url) return;
+      if (!settings?.useCache) return; // if cache is disabled we're already done
 
-      const domain = new URL(url).hostname;
-      console.log("[HomePage] Checking cache for domain:", domain);
-      const analysesForDomain = await storageAPI.getAnalysesForDomain(domain);
-      console.log("[HomePage] Found analyses:", analysesForDomain);
+      // Get the current tab's domain
+      try {
+        const tabs = await browser.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        const url = tabs?.[0]?.url;
+        if (!url) return;
+        const domain = new URL(url).hostname;
+        const analysesForDomain = await storageAPI.getAnalysesForDomain(domain);
+        console.log("[HomePage] Found analyses:", analysesForDomain);
 
-      if (analysesForDomain.length > 0 && isMounted) {
-        setDomainHasCache(true);
+        // If analysis has been found, update state.
+        if (analysesForDomain.length > 0 && isMounted) {
+          setDomainHasCache(true);
+        }
+      } catch (e) {
+        console.error("[HomePage] Failed to check cache:", e);
       }
     };
 
-    checkCache();
+    initializeHomePage();
+
     return () => {
       isMounted = false;
       if (retryTimeout) clearTimeout(retryTimeout);
     };
   }, []);
 
+  // Effect: try to auto-retrieve policy upon popup opening
   useEffect(() => {
     (async () => {
       try {
         setRetrievalStatus("loading");
 
+        // Retrieve domain from tab
         const [tab] = await browser.tabs.query({
           active: true,
           currentWindow: true,
         });
         const tabId = tab?.id;
-
-        console.log("[Popup] tabId =", tabId);
         if (!tabId) {
           setRetrievalStatus("error");
           setTimeout(() => setRetrievalStatus(null), 3000);
           return;
         }
 
+        // Ask content script to kindly retrieve the page's privacy policy.
         const destination = `content-script@${tabId}`;
         console.log("[Popup] sending GET_PAGE_TEXT to", destination);
-
         const res = await sendMessage("GET_PAGE_TEXT", undefined, destination);
 
-        console.log("[Popup] received:", res);
-
+        // If policy has been retrieved, put it inside the text box
+        // TODO: potentially make this optional
         if (res?.text && res.text !== "not found" && res.text !== "error") {
-          console.log("[Popup] Setting policy text, length:", res.text.length);
+          console.log("[Popup] received, length:", res.text.length);
           setFullPolicyText(res.text);
           setRetrievalStatus("success");
           setTimeout(() => setRetrievalStatus(null), 2000);
