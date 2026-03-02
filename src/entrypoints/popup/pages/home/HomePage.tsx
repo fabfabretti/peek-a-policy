@@ -163,21 +163,28 @@ function HomePage() {
     })();
   }, []);
 
+  // ANALYSIS: core of the extension. This kickstarts the PP analyzer
+  // by sending a message to the PRM and navigating to the result page when
+  // done.
   const analysePolicy = async () => {
     setErrorMsg("");
 
+    // If no policy has been pasted, quit
     if (fullPolicyText.trim() === "") {
       setIsInvalid(true);
       return;
     }
-
     setIsInvalid(false);
-    setIsLoading(true);
 
+    // Start the proces.
+    setIsLoading(true);
     try {
+      // Get singleton PRM
       const manager = await PolicyRequestManager.getInstance();
+      // Wait result from PRM
       const result = await manager.analysePolicy(fullPolicyText);
 
+      // If we got none/null, something went wrong...
       if (!result) {
         setErrorMsg(
           "Coudln't connect to the LLM.\n Please double check your LLM endpoint and key.",
@@ -185,26 +192,34 @@ function HomePage() {
         return;
       }
 
+      // If the LLM's response contains an "error" field, the LLM
+      // found something wrong (e.g. not a PP) and wrote an error field
+      // to explain what's wrong
       if ((result as any).error) {
         setErrorMsg("The analysis failed: " + (result as any).error);
         return;
       }
 
+      // If we're here, we have results :) Let's save them.
+
+      // Find out the current page's domain
       const tabs = await browser.tabs.query({
         active: true,
         currentWindow: true,
       });
       const url = tabs?.[0]?.url;
       const domain = url ? new URL(url).hostname : null;
-
       if (!domain) {
         setErrorMsg("Could not determine domain for this page.");
         return;
       }
 
-      // Create composite key: domain_timestamp
+      // Create composite key: domain_timestamp to save
+      // analysis in local storage.
       const analysisId = `${domain}_${Date.now()}`;
       await storageAPI.save(analysisId, result);
+
+      // Move to results :)
       navigate(`/results?id=${analysisId}`);
     } catch (e) {
       console.error("Error during analysis:", e);
