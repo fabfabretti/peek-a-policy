@@ -38,6 +38,24 @@ const storageAPI = {
     }
   },
 
+  async getAnalysesForDomain(domain: string): Promise<string[]> {
+    try {
+      const all = await browser.storage.local.get(null);
+      console.log(`[storageAPI] All storage keys:`, Object.keys(all));
+      const analysisKeys = Object.keys(all)
+        .filter((key) => key.startsWith(`${domain}_`))
+        .map((key) => key);
+      console.log(
+        `[storageAPI] Analysis keys for domain ${domain}:`,
+        analysisKeys,
+      );
+      return analysisKeys;
+    } catch (e) {
+      console.error(`Failed to get analyses for domain ${domain}:`, e);
+      return [];
+    }
+  },
+
   async getPolicyCacheBytes(): Promise<number> {
     try {
       const all = await browser.storage.local.get(null);

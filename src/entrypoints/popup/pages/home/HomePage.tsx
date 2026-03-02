@@ -1,39 +1,62 @@
 /**
  * src/popup/pages/home/HomePage.tsx
+ * Responsibilities:
+ * 1. Retrieve policy text automatically from active tab
+ * 2. Check cache availability for current domain
+ * 3. Validate LLM configuration
+ * 4. Trigger policy analysis
+ * 5. Navigate to results page
+ *
+ * NOTE:
+ * - No business logic here (delegated to PolicyRequestManager)
+ * - Storage access centralized via storageAPI
  */
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
+
 import { Button } from "@heroui/button";
-import { Tooltip } from "@heroui/tooltip";
 import { Textarea } from "@heroui/react";
 import { useSearchParams } from "react-router";
+
 import { browser } from "wxt/browser";
+import { sendMessage } from "webext-bridge/popup";
 
 import PolicyRequestManager from "@/utils/PolicyRequestManager";
 import storageAPI from "@/utils/storageAPI";
+
 import { PolicyResponse, Settings } from "@/utils/types/types";
 
-import { sendMessage } from "webext-bridge/popup";
-
 function HomePage() {
-  const [fullPolicyText, setFullPolicyText] = useState("");
-  const [isInvalid, setIsInvalid] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [domainHasCache, setDomainHasCache] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [hasLLM, setHasLLM] = useState<boolean>(false);
-  const [settingsLoading, setSettingsLoading] = useState(true);
+  // Types
   const [retrievalStatus, setRetrievalStatus] = useState<
     "loading" | "success" | "error" | null
   >(null);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const noRedirect = searchParams.get("noRedirect");
 
+  // Content
+  const [fullPolicyText, setFullPolicyText] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // Various states
+  const [hasLLM, setHasLLM] = useState<boolean>(false);
+  const [domainHasCache, setDomainHasCache] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [isInvalid, setIsInvalid] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Navigator
+  const navigate = useNavigate();
+
+  // Effect:
+  // 1. Check if LLM --> save into state
+  // 2. Check if cache saved for this site --> save into state
   useEffect(() => {
     let retryTimeout: NodeJS.Timeout | null = null;
+
     let isMounted = true;
+
+    // 1. Let's get the settings.
+
     const checkCache = async (retryCount = 0) => {
       const settings = await storageAPI.get<Settings>("settings");
       let llmConfigured = false;
@@ -66,11 +89,12 @@ function HomePage() {
       if (!url) return;
 
       const domain = new URL(url).hostname;
-      const cached = await storageAPI.get<PolicyResponse>(domain);
+      console.log("[HomePage] Checking cache for domain:", domain);
+      const analysesForDomain = await storageAPI.getAnalysesForDomain(domain);
+      console.log("[HomePage] Found analyses:", analysesForDomain);
 
-      if (cached && cached.summary) {
+      if (analysesForDomain.length > 0 && isMounted) {
         setDomainHasCache(true);
-        await storageAPI.save("last_analysis", cached);
       }
     };
 
@@ -79,13 +103,6 @@ function HomePage() {
       isMounted = false;
       if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, []);
-
-  useEffect(() => {
-    const checkCache = async () => {
-      // ... tuo codice
-    };
-    checkCache();
   }, []);
 
   useEffect(() => {
@@ -165,12 +182,15 @@ function HomePage() {
       const url = tabs?.[0]?.url;
       const domain = url ? new URL(url).hostname : null;
 
-      if (domain) {
-        await storageAPI.save(domain, result);
+      if (!domain) {
+        setErrorMsg("Could not determine domain for this page.");
+        return;
       }
 
-      await storageAPI.save("last_analysis", result);
-      navigate("/results");
+      // Create composite key: domain_timestamp
+      const analysisId = `${domain}_${Date.now()}`;
+      await storageAPI.save(analysisId, result);
+      navigate(`/results?id=${analysisId}`);
     } catch (e) {
       console.error("Error during analysis:", e);
       setErrorMsg("Unexpected error. Please try again.");
@@ -227,7 +247,9 @@ function HomePage() {
       )}
 
       <p className="subtitle text-base text-gray-800 text-center">
-        Paste the policy you'd like to analyse here.
+        The extension will try to extract the policy here automatically. You can
+        also paste the text manually, or paste an URL and attempt to extract the
+        content.
       </p>
 
       {domainHasCache && (
@@ -237,7 +259,29 @@ function HomePage() {
             color="primary"
             variant="ghost"
             className="mt-2 w-full"
-            onPress={() => navigate("/results")}
+            onPress={async () => {
+              try {
+                const tabs = await browser.tabs.query({
+                  active: true,
+                  currentWindow: true,
+                });
+                const url = tabs?.[0]?.url;
+                if (!url) return;
+
+                const domain = new URL(url).hostname;
+                const analysesForDomain =
+                  await storageAPI.getAnalysesForDomain(domain);
+
+                if (analysesForDomain.length > 0) {
+                  const latestKey = analysesForDomain.sort().pop();
+                  if (latestKey) {
+                    navigate(`/results?id=${latestKey}`);
+                  }
+                }
+              } catch (e) {
+                console.error("[HomePage] Failed to navigate to results:", e);
+              }
+            }}
           >
             View Results
           </Button>

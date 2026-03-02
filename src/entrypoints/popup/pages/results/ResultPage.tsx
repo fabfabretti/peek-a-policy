@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Button } from "@heroui/button";
 import { Accordion, AccordionItem } from "@heroui/accordion";
 import { Card } from "@heroui/card";
@@ -20,6 +20,7 @@ const getColor = (score: number): string => {
 
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [policy, setPolicy] = useState<PolicyResponse | null>(null);
   const [indicators, setIndicators] = useState<Indicator[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,22 +30,24 @@ const ResultPage: React.FC = () => {
   useEffect(() => {
     const loadPolicy = async () => {
       try {
-        const tabs = await browser.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        const url = tabs?.[0]?.url;
-        if (!url) throw new Error("No URL");
-        const domain = new URL(url).hostname;
-        setDomain(domain);
+        // Get id from search params
+        const analysisId = searchParams.get("id");
+        if (!analysisId) throw new Error("No analysis ID provided");
 
-        const result = await storageAPI.get<PolicyResponse>(domain);
+        // Load result using the provided id
+        const result = await storageAPI.get<PolicyResponse>(analysisId);
         setPolicy(result ?? null);
         setIndicators(result?.indicators ?? null);
 
+        // Extract domain from result if available
+        if (result?.domain) {
+          setDomain(result.domain);
+        }
+
+        // If cache is disabled, delete the entry
         const settings = await storageAPI.get<Settings>("settings");
         if (settings && !settings.useCache) {
-          await storageAPI.delete(domain);
+          await storageAPI.delete(analysisId);
         }
       } catch (e) {
         console.error("[ResultPage] Failed:", e);
@@ -55,7 +58,7 @@ const ResultPage: React.FC = () => {
     };
 
     loadPolicy();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchIndicators = async () => {
@@ -70,8 +73,9 @@ const ResultPage: React.FC = () => {
       );
       setLoadingIndicators(false);
 
-      if (domain) {
-        await storageAPI.save(domain, {
+      const analysisId = searchParams.get("id");
+      if (analysisId) {
+        await storageAPI.save(analysisId, {
           ...policy,
           indicators: enriched.indicators,
         });
@@ -79,7 +83,7 @@ const ResultPage: React.FC = () => {
     };
 
     fetchIndicators();
-  }, [policy, indicators, domain]);
+  }, [policy, indicators, searchParams]);
 
   if (loading) {
     return (
