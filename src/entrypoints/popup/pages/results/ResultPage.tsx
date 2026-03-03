@@ -1,16 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+
+import { browser } from "wxt/browser";
+import { marked } from "marked";
+
 import { Button } from "@heroui/button";
 import { Accordion, AccordionItem } from "@heroui/accordion";
 import { Card } from "@heroui/card";
 import { Tooltip } from "@heroui/tooltip";
-import ScoreBadge from "../../components/ScoreBadge";
+
 import ScoreBar from "../../components/ScoreBar";
-import storageAPI from "@/utils/storageAPI";
+
 import { PolicyResponse, Settings, Indicator } from "@/utils/types/types";
-import { browser } from "wxt/browser";
-import { marked } from "marked";
+
 import PolicyRequestManager from "@/utils/PolicyRequestManager";
+import storageAPI from "@/utils/storageAPI";
 
 const getColor = (score: number): string => {
   if (score >= 80) return "#22c55e";
@@ -18,15 +22,21 @@ const getColor = (score: number): string => {
   return "#ef4444";
 };
 
-const ResultPage: React.FC = () => {
+function ResultPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Data
   const [policy, setPolicy] = useState<PolicyResponse | null>(null);
   const [indicators, setIndicators] = useState<Indicator[] | null>(null);
+
+  //States
   const [loading, setLoading] = useState(true);
   const [loadingIndicators, setLoadingIndicators] = useState(false);
   const [domain, setDomain] = useState<string | null>(null);
 
+  // Effect: get the domain we want to display (from search params) from
+  // local storage
   useEffect(() => {
     const loadPolicy = async () => {
       try {
@@ -60,10 +70,14 @@ const ResultPage: React.FC = () => {
     loadPolicy();
   }, [searchParams]);
 
+  // Effect: compute indicators from a policy if the policy
+  // does not contain indicators yet
   useEffect(() => {
     const fetchIndicators = async () => {
+      // If no policy, or indicators already there, we're done
       if (!policy || indicators?.length) return;
 
+      // Else, let's start fetching...
       setLoadingIndicators(true);
       const manager = await PolicyRequestManager.getInstance();
       const enriched = await manager.enrichWithIndicators(policy);
@@ -73,6 +87,7 @@ const ResultPage: React.FC = () => {
       );
       setLoadingIndicators(false);
 
+      // And fetch the result
       const analysisId = searchParams.get("id");
       if (analysisId) {
         await storageAPI.save(analysisId, {
@@ -264,7 +279,7 @@ const ResultPage: React.FC = () => {
       </Button>
     </div>
   );
-};
+}
 
 export default ResultPage;
 
