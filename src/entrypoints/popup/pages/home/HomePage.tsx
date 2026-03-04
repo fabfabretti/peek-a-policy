@@ -27,52 +27,44 @@ import storageAPI from "@/utils/storageAPI";
 
 import { PolicyResponse, Settings } from "@/utils/types/types";
 
+type FetchViaTabResponse =
+  | { ok: true; text: string }
+  | { ok: false; error?: string };
+
 function HomePage() {
-  // Types
   const [retrievalStatus, setRetrievalStatus] = useState<
     "loading" | "success" | "error" | null
   >(null);
 
-  // Content
   const [fullPolicyText, setFullPolicyText] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Various states
   const [hasLLM, setHasLLM] = useState<boolean>(false);
   const [domainHasCache, setDomainHasCache] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [isInvalid, setIsInvalid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Navigator
   const navigate = useNavigate();
 
-  // Effect:
-  // 1. Check if LLM --> save into state
-  // 2. Check if cache saved for this site --> save into state
   useEffect(() => {
     let retryTimeout: NodeJS.Timeout | null = null;
     let isMounted = true;
 
     const initializeHomePage = async (retryCount = 0) => {
-      // Step 1: Check if LLM is configured
-
-      // Get settings
       const settings = await storageAPI.get<Settings>("settings");
 
       let llmConfigured = false;
       if (
-        // if I have settings and there are LLMs set
         settings &&
         Array.isArray(settings.llms) &&
         settings.llms.length > 0
       ) {
-        // update state if there are LLMs and one is active
         llmConfigured =
           !!settings.activeLLM &&
           settings.llms.some((l) => l.id === settings.activeLLM);
       }
-      // Retry if settings haven't loaded yet
+
       if (!settings || (!llmConfigured && retryCount < 5)) {
         retryTimeout = setTimeout(
           () => initializeHomePage(retryCount + 1),
@@ -81,25 +73,19 @@ function HomePage() {
         return;
       }
 
-      // (to avoid editing state if popup has been closed)
       if (isMounted) {
         setHasLLM(llmConfigured);
         setSettingsLoading(false);
       }
 
-      // Step 2: Check if cache is saved for this site
+      if (!settings?.useCache) return;
 
-      if (!settings?.useCache) return; // if cache is disabled we're already done
-
-      // Get the current tab's domain
       try {
         const domain = await getCurrentDomain();
         if (!domain) return;
 
         const analysesForDomain = await storageAPI.getAnalysesForDomain(domain);
-        console.log("[HomePage] Found analyses:", analysesForDomain);
 
-        // If analysis has been found, update state.
         if (analysesForDomain.length > 0 && isMounted) {
           setDomainHasCache(true);
         }
@@ -116,67 +102,83 @@ function HomePage() {
     };
   }, []);
 
-  // Effect: try to auto-retrieve policy upon popup opening
-  useEffect(() => {
-    (async () => {
-      try {
-        setRetrievalStatus("loading");
+  const retrievePolicyFromSite = async () => {
+    try {
+      setRetrievalStatus("loading");
 
-        // Retrieve domain from tab
-        const tabId = await getCurrentTabId();
-        if (!tabId) {
-          setRetrievalStatus("error");
-          setTimeout(() => setRetrievalStatus(null), 3000);
-          return;
-        }
+      const tabId = await getCurrentTabId();
+      if (!tabId) {
+        setRetrievalStatus("error");
+        setTimeout(() => setRetrievalStatus(null), 3000);
+        return;
+      }
 
-        // Ask content script to kindly retrieve the page's privacy policy.
-        const destination = `content-script@${tabId}`;
-        console.log("[Popup] sending GET_PAGE_TEXT to", destination);
-        const res = await sendMessage("GET_PAGE_TEXT", undefined, destination);
+      const destination = `content-script@${tabId}`;
+      const res = await sendMessage("GET_PAGE_TEXT", undefined, destination);
 
-        // If policy has been retrieved, put it inside the text box
-        // TODO: potentially make this optional
-        if (res?.text && res.text !== "not found" && res.text !== "error") {
-          console.log("[Popup] received, length:", res.text.length);
-          setFullPolicyText(res.text);
-          setRetrievalStatus("success");
-          setTimeout(() => setRetrievalStatus(null), 2000);
-        } else {
-          console.warn("[Popup] No valid text in response");
-          setRetrievalStatus("error");
-          setTimeout(() => setRetrievalStatus(null), 3000);
-        }
-      } catch (e) {
-        console.error("[Popup] GET_PAGE_TEXT failed", e);
+      if (res?.text && res.text !== "not found" && res.text !== "error") {
+        setFullPolicyText(res.text);
+        setRetrievalStatus("success");
+        setTimeout(() => setRetrievalStatus(null), 2000);
+      } else {
         setRetrievalStatus("error");
         setTimeout(() => setRetrievalStatus(null), 3000);
       }
-    })();
-  }, []);
+    } catch (e) {
+      console.error("[Popup] GET_PAGE_TEXT failed", e);
+      setRetrievalStatus("error");
+      setTimeout(() => setRetrievalStatus(null), 3000);
+    }
+  };
 
-  // ANALYSIS: core of the extension. This kickstarts the PP analyzer
-  // by sending a message to the PRM and navigating to the result page when
-  // done.
   const analysePolicy = async () => {
     setErrorMsg("");
 
-    // If no policy has been pasted, quit
     if (fullPolicyText.trim() === "") {
       setIsInvalid(true);
       return;
     }
+
     setIsInvalid(false);
-
-    // Start the proces.
     setIsLoading(true);
-    try {
-      // Get singleton PRM
-      const manager = await PolicyRequestManager.getInstance();
-      // Wait result from PRM
-      const result = await manager.analysePolicy(fullPolicyText);
 
-      // If we got none/null, something went wrong...
+    try {
+      const originalInput = fullPolicyText.trim();
+      let policyTextToAnalyze = originalInput;
+
+      if (isUrl(originalInput)) {
+        try {
+          const fetchResponse = (await sendMessage(
+            "FETCH_VIA_TAB",
+            { url: originalInput },
+            "background",
+          )) as FetchViaTabResponse;
+
+          if (!fetchResponse.ok) {
+            setErrorMsg(
+              "Failed to fetch the URL. Please ensure the URL is valid and accessible.",
+            );
+            return;
+          }
+
+          policyTextToAnalyze = fetchResponse.text.trim();
+
+          if (!policyTextToAnalyze) {
+            setErrorMsg("No readable content found at the provided URL.");
+            return;
+          }
+        } catch (e) {
+          console.error("[Popup] FETCH_VIA_TAB error:", e);
+          setErrorMsg(
+            "Failed to fetch the URL. Please ensure the URL is valid and accessible.",
+          );
+          return;
+        }
+      }
+
+      const manager = await PolicyRequestManager.getInstance();
+      const result = await manager.analysePolicy(policyTextToAnalyze);
+
       if (!result) {
         setErrorMsg(
           "Coudln't connect to the LLM.\n Please double check your LLM endpoint and key.",
@@ -184,29 +186,31 @@ function HomePage() {
         return;
       }
 
-      // If the LLM's response contains an "error" field, the LLM
-      // found something wrong (e.g. not a PP) and wrote an error field
-      // to explain what's wrong
       if ((result as any).error) {
         setErrorMsg("The analysis failed: " + (result as any).error);
         return;
       }
 
-      // If we're here, we have results :) Let's save them.
+      let domain: string | null = null;
 
-      // Find out the current page's domain
-      const domain = await getCurrentDomain();
+      if (isUrl(originalInput)) {
+        try {
+          domain = new URL(originalInput).hostname;
+        } catch {
+          domain = null;
+        }
+      } else {
+        domain = await getCurrentDomain();
+      }
+
       if (!domain) {
         setErrorMsg("Could not determine domain for this page.");
         return;
       }
 
-      // Create composite key: domain_timestamp to save
-      // analysis in local storage.
       const analysisId = `${domain}_${Date.now()}`;
       await storageAPI.save(analysisId, result);
 
-      // Move to results :)
       navigate(`/results?id=${analysisId}`);
     } catch (e) {
       console.error("Error during analysis:", e);
@@ -218,14 +222,12 @@ function HomePage() {
 
   return (
     <div className="relative w-[480px] p-4 flex flex-col items-center gap-4">
-      {/* Title row */}
       <div className="w-full flex justify-center mb-2">
         <h1 className="title text-primary text-2xl font-bold z-10 drop-shadow-md text-center">
           Peek-a-Policy
         </h1>
       </div>
 
-      {/* Settings button in top-right */}
       <div className="absolute top-2 right-2 z-10">
         <Button
           size="sm"
@@ -238,7 +240,6 @@ function HomePage() {
         </Button>
       </div>
 
-      {/* WARNING: no LLM configured */}
       {!settingsLoading && !hasLLM && (
         <div className="w-full max-w-md border border-red-300 bg-red-50 rounded-md p-3 text-sm text-red-800">
           <div className="flex items-center justify-between gap-4">
@@ -317,7 +318,6 @@ function HomePage() {
         }}
       />
 
-      {/* Retrieval status message */}
       {retrievalStatus && (
         <div className="w-full text-sm text-gray-500 animate-pulse mt-2 mb-2 text-center">
           {retrievalStatus === "loading" && "Retrieving policy..."}
@@ -327,30 +327,39 @@ function HomePage() {
         </div>
       )}
 
-      {/* Analyse button or loading message */}
-      {isLoading ? (
-        <div className="text-sm text-gray-500 animate-pulse mt-2 mb-2 w-full text-center">
-          Analysing policy...
-        </div>
-      ) : (
+      <div className="w-full flex gap-2 justify-center">
         <Button
           size="sm"
-          color="primary"
-          variant="solid"
-          className="min-w-[120px] text-sm px-3 py-1"
-          onPress={analysePolicy}
-          disabled={isLoading || !fullPolicyText.trim()}
+          color="default"
+          variant="bordered"
+          className="text-sm px-3 py-1"
+          onPress={retrievePolicyFromSite}
+          disabled={isLoading}
         >
-          Start Analysis
+          Retrieve Policy
         </Button>
-      )}
+
+        {isLoading ? (
+          <div className="text-sm text-gray-500 animate-pulse">
+            Analysing policy...
+          </div>
+        ) : (
+          <Button
+            size="sm"
+            color="primary"
+            variant="solid"
+            className="min-w-[120px] text-sm px-3 py-1"
+            onPress={analysePolicy}
+            disabled={isLoading || !fullPolicyText.trim()}
+          >
+            Start Analysis
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
 
-// HELPERS
-
-// Helper: Get current tab's domain
 const getCurrentDomain = async (): Promise<string | null> => {
   try {
     const tabs = await browser.tabs.query({
@@ -359,13 +368,11 @@ const getCurrentDomain = async (): Promise<string | null> => {
     });
     const url = tabs?.[0]?.url;
     return url ? new URL(url).hostname : null;
-  } catch (e) {
-    console.error("[HomePage] Failed to get current domain:", e);
+  } catch {
     return null;
   }
 };
 
-// Helper: Get current tab's ID
 const getCurrentTabId = async (): Promise<number | null> => {
   try {
     const tabs = await browser.tabs.query({
@@ -373,9 +380,17 @@ const getCurrentTabId = async (): Promise<number | null> => {
       currentWindow: true,
     });
     return tabs?.[0]?.id ?? null;
-  } catch (e) {
-    console.error("[HomePage] Failed to get tab ID:", e);
+  } catch {
     return null;
+  }
+};
+
+const isUrl = (str: string): boolean => {
+  try {
+    new URL(str);
+    return true;
+  } catch {
+    return false;
   }
 };
 
